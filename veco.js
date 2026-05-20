@@ -214,13 +214,24 @@ function consume() {
     renderHeld();
 }
 
-// boja se može staviti samo na prazno polje i samo ako se slaže s postojećom bojom
+// Bijela (#ffffff) je "džoker" i paše uz svaku boju.
+// Prava boja kvadratića = prva ne-bijela boja u njemu (null ako su sve bijele/prazne).
+function squareRealColor(square) {
+    return square.cells.find(c => c !== null && c !== WHITE) || null;
+}
+
+// Može li se boja staviti u kvadratić: bijela uvijek, inače mora pašati s pravom bojom.
+function colorFitsSquare(square, color) {
+    if (color === WHITE) return true;
+    const real = squareRealColor(square);
+    return real === null || real === color;
+}
+
+// boja se može staviti samo na prazno polje i samo ako paše (ili je bijeli džoker)
 function placeColor(square, cellIndex, color) {
 
     if (square.cells[cellIndex]) return;
-
-    const existing = square.cells.filter(c => c !== null);
-    if (existing.length > 0 && existing[0] !== color) return;
+    if (!colorFitsSquare(square, color)) return;
 
     square.cells[cellIndex] = color;
 
@@ -235,7 +246,8 @@ function placeColor(square, cellIndex, color) {
 function applyPower(square, cellIndex, power) {
 
     if (power === "white") {
-        // oboji to polje u bijelo
+        // pretvori već popunjeno polje u bijeli džoker
+        if (!square.cells[cellIndex]) return;
         square.cells[cellIndex] = WHITE;
         consume();
         checkCompleted(square);
@@ -249,11 +261,10 @@ function applyPower(square, cellIndex, power) {
     }
 
     else if (power === "add") {
-        // dodaj boju koja fali u jedno prazno polje
-        const existing = square.cells.filter(c => c !== null);
-        if (existing.length === 0) return;
+        // dodaj pravu boju kvadratića u jedno prazno polje
+        const target = squareRealColor(square);
+        if (target === null) return;
 
-        const target = existing[0];
         const emptyIndex = square.cells.findIndex(c => c === null);
         if (emptyIndex === -1) return;
 
@@ -263,11 +274,10 @@ function applyPower(square, cellIndex, power) {
     }
 
     else if (power === "fill") {
-        // napuni sva prazna polja bojom kvadrata
-        const existing = square.cells.filter(c => c !== null);
-        if (existing.length === 0) return;
+        // napuni sva prazna polja pravom bojom kvadratića
+        const target = squareRealColor(square);
+        if (target === null) return;
 
-        const target = existing[0];
         for (let i = 0; i < 4; i++) {
             if (square.cells[i] === null) square.cells[i] = target;
         }
@@ -285,8 +295,9 @@ function checkCompleted(square) {
     const full = square.cells.every(c => c !== null);
     if (!full) return;
 
-    const first = square.cells[0];
-    const same = square.cells.every(c => c === first);
+    // popunjen je ako su sva polja ista prava boja ili bijeli džoker
+    const real = squareRealColor(square);
+    const same = square.cells.every(c => c === WHITE || c === real);
 
     if (same) {
         score += 4;
@@ -302,19 +313,18 @@ function checkCompleted(square) {
 // ===== MOŽE LI SE PREDMET IGDJE ODIGRATI =====
 function canPlaceColor(square, color) {
     const hasEmpty = square.cells.some(c => c === null);
-    if (!hasEmpty) return false;
-    const existing = square.cells.filter(c => c !== null);
-    return existing.length === 0 || existing[0] === color;
+    return hasEmpty && colorFitsSquare(square, color);
 }
 
 function canApplyPower(square, power) {
     const hasEmpty = square.cells.some(c => c === null);
-    const hasColor = square.cells.some(c => c !== null);
+    const hasAny = square.cells.some(c => c !== null);
+    const hasReal = squareRealColor(square) !== null;
 
-    if (power === "white")  return true;               // boja se može preko bilo kojeg polja
-    if (power === "remove") return hasColor;            // treba obojano polje
-    if (power === "add")    return hasColor && hasEmpty;
-    if (power === "fill")   return hasColor && hasEmpty;
+    if (power === "white")  return hasReal;             // treba ne-bijelo polje za pretvoriti
+    if (power === "remove") return hasAny;              // treba bilo koje obojano polje
+    if (power === "add")    return hasReal && hasEmpty;
+    if (power === "fill")   return hasReal && hasEmpty;
     return false;
 }
 
