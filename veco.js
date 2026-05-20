@@ -1,18 +1,43 @@
 // ===== KONSTANTE =====
-const COLORS = [
-    "#ef4444",
-    "#3b82f6",
-    "#22c55e",
-    "#eab308",
-    "#a855f7",
-    "#f97316",
-    "#06b6d4",
-    "#ec4899",
-    "#84cc16",
-    "#ffffff"
+// "Prave" boje (bez džokera). Svaki nivo otključa jednu sljedeću -> teže.
+const ALL_COLORS = [
+    "#ef4444",  // crvena
+    "#3b82f6",  // plava
+    "#22c55e",  // zelena
+    "#eab308",  // žuta
+    "#a855f7",  // ljubičasta
+    "#f97316",  // narančasta
+    "#06b6d4",  // cijan
+    "#ec4899",  // roza
+    "#84cc16",  // limeta
+    "#14b8a6",  // tirkizna
+    "#6366f1",  // indigo
+    "#92400e",  // smeđa
+    "#db2777",  // magenta
+    "#64748b",  // siva
+    "#ca8a04",  // zlatna
+    "#f43f5e",  // ružičasto-crvena
+    "#6ee7b7",  // menta
+    "#c4b5fd"   // lavanda
 ];
 
 const WHITE = "#ffffff";
+
+// Koliko pravih boja je aktivno na 1. nivou (svaki nivo +1)
+const START_COLORS = 9;
+
+// Oznaka džokera: outline jokerske kape/glave, okrenut naopačke (rotacija 180°)
+function jokerSvg() {
+    return '' +
+    '<svg class="joker-mark" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
+        '<g transform="rotate(180 50 50)" fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">' +
+            '<path d="M16 72 L11 22 L33 56 L50 10 L67 56 L89 22 L84 72 Q50 82 16 72 Z"/>' +
+            '<circle cx="11" cy="16" r="5"/>' +
+            '<circle cx="50" cy="4" r="5"/>' +
+            '<circle cx="89" cy="16" r="5"/>' +
+        '</g>' +
+    '</svg>';
+}
 
 // Definicije 4 moći (trokutići)
 const POWERS = {
@@ -24,13 +49,17 @@ const POWERS = {
 const POWER_KEYS = Object.keys(POWERS);
 
 // Šansa da umjesto boje dođe trokutić
-const POWER_CHANCE = 0.3;
+const POWER_CHANCE = 0.15;
 
 // ===== STANJE =====
 let incomingItem = null;   // { kind:"color", color } | { kind:"power", power }
 let selected = null;       // ono što držimo "u ruci"
 let score = 0;
 let gameOver = false;
+
+let level = 1;
+let completedThisLevel = 0;
+let activeColors = [];     // prave boje aktivne na ovom nivou + bijeli džoker
 
 let storage = [null, null, null, null, null];
 
@@ -42,13 +71,34 @@ const heldDiv = document.getElementById("held");
 const storageDiv = document.getElementById("storage");
 const boardDiv = document.getElementById("board");
 const scoreDiv = document.getElementById("score");
+const levelSpan = document.getElementById("level");
+const progressSpan = document.getElementById("progress");
+const targetSpan = document.getElementById("target");
 const overlay = document.getElementById("overlay");
 const finalScoreSpan = document.getElementById("finalScore");
 const restartBtn = document.getElementById("restartBtn");
 
+// ===== NIVOI =====
+// Nivo 1 traži 10 popunjenih kvadratića, svaki sljedeći +1.
+function targetForLevel(lvl) {
+    return 9 + lvl;
+}
+
+// Aktivne boje za trenutni nivo = prvih (START_COLORS + nivo-1) pravih boja + džoker.
+function rebuildActiveColors() {
+    const count = Math.min(START_COLORS + (level - 1), ALL_COLORS.length);
+    activeColors = ALL_COLORS.slice(0, count).concat([WHITE]);
+}
+
+function updateHud() {
+    levelSpan.textContent = level;
+    progressSpan.textContent = completedThisLevel;
+    targetSpan.textContent = targetForLevel(level);
+}
+
 // ===== GENERIRANJE NOVOG PREDMETA =====
 function randomColor() {
-    return COLORS[Math.floor(Math.random() * COLORS.length)];
+    return activeColors[Math.floor(Math.random() * activeColors.length)];
 }
 
 function generateNext() {
@@ -73,6 +123,10 @@ function makeVisual(item, size) {
     if (item.kind === "color") {
         el.className = "vis-color";
         el.style.background = item.color;
+        if (item.color === WHITE) {
+            el.classList.add("is-joker");
+            el.innerHTML = jokerSvg();
+        }
     } else {
         const p = POWERS[item.power];
         el.className = "vis-power";
@@ -191,7 +245,9 @@ function renderBoard() {
         const cells = square.element.children;
 
         for (let i = 0; i < 4; i++) {
-            cells[i].style.background = square.cells[i] ? square.cells[i] : "#374151";
+            const c = square.cells[i];
+            cells[i].style.background = c ? c : "#374151";
+            cells[i].innerHTML = (c === WHITE) ? jokerSvg() : "";
         }
     });
 }
@@ -303,6 +359,14 @@ function checkCompleted(square) {
         score += 4;
         scoreDiv.textContent = score;
 
+        completedThisLevel++;
+        if (completedThisLevel >= targetForLevel(level)) {
+            level++;
+            completedThisLevel = 0;
+            rebuildActiveColors();
+        }
+        updateHud();
+
         setTimeout(() => {
             square.cells = [null, null, null, null];
             renderBoard();
@@ -360,11 +424,15 @@ function restart() {
     selected = null;
     score = 0;
     scoreDiv.textContent = "0";
+    level = 1;
+    completedThisLevel = 0;
+    rebuildActiveColors();
     storage = [null, null, null, null, null];
     bigSquares.forEach(sq => sq.cells = [null, null, null, null]);
     gameOver = false;
     overlay.classList.remove("show");
 
+    updateHud();
     renderBoard();
     renderStorage();
     renderHeld();
@@ -374,6 +442,8 @@ function restart() {
 restartBtn.onclick = restart;
 
 // ===== START =====
+rebuildActiveColors();
+updateHud();
 createBoard();
 renderStorage();
 renderHeld();

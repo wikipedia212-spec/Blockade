@@ -79,6 +79,20 @@ h3 {
     transform: scale(1.05);
 }
 
+/* bijela kockica = džoker, prikaže oznaku u sredini */
+.vis-color.is-joker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.joker-mark {
+    width: 72%;
+    height: 72%;
+    display: block;
+    pointer-events: none;
+}
+
 .vis-power {
     position: relative;
     display: flex;
@@ -140,6 +154,14 @@ h3 {
     border-radius: 6px;
     cursor: pointer;
     transition: 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cell .joker-mark {
+    width: 66%;
+    height: 66%;
 }
 
 .cell:hover {
