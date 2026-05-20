@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blockade</title>
+<link rel="stylesheet" href="veco.css">
+</head>
+
+<body>
+
+<div class="game">
+
+    <div class="left-panel">
+
+        <h1>Blockade</h1>
+
+        <h3>Dolazi</h3>
+        <div class="incoming" id="incoming"></div>
+
+        <h3>U ruci</h3>
+        <div class="held" id="held"></div>
+
+        <h3>Spremište</h3>
+        <div class="storage" id="storage"></div>
+
+        <div class="info">
+            Score: <span id="score">0</span>
+        </div>
+
+        <div class="legend">
+            <h3>Trokutići (moći)</h3>
+            <div class="legend-item"><span class="leg-tri power-white">⬜</span> Oboji jedno polje u bijelo</div>
+            <div class="legend-item"><span class="leg-tri power-add">+</span> Dodaj boju koja fali (1 polje)</div>
+            <div class="legend-item"><span class="leg-tri power-remove">–</span> Ukloni jednu boju iz kvadrata</div>
+            <div class="legend-item"><span class="leg-tri power-fill">★</span> Napuni cijeli kvadrat bojom</div>
+        </div>
+
+    </div>
+
+    <div class="board" id="board"></div>
+
+</div>
+
+<script src="veco.js"></script>
+
+</body>
+</html>

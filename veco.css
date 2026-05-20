@@ -1,0 +1,188 @@
+body {
+    margin: 0;
+    background: #111827;
+    color: white;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.game {
+    display: flex;
+    gap: 30px;
+    padding: 20px;
+}
+
+.left-panel {
+    width: 260px;
+}
+
+h1 {
+    text-align: center;
+}
+
+h3 {
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+/* ===== Dolazeći predmet ===== */
+.incoming {
+    margin-bottom: 20px;
+    min-height: 70px;
+    display: flex;
+    justify-content: center;
+}
+
+/* ===== U ruci ===== */
+.held {
+    height: 70px;
+    margin-bottom: 20px;
+    border: 2px dashed #555;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ===== Spremište ===== */
+.storage {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.slot {
+    width: 45px;
+    height: 45px;
+    border: 2px dashed #777;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ===== Vizual predmeta (boja / moć) ===== */
+.vis-color {
+    border-radius: 10px;
+    border: 3px solid white;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.vis-color:hover {
+    transform: scale(1.05);
+}
+
+.vis-power {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.vis-power:hover {
+    transform: scale(1.05);
+}
+
+.vis-power::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--pw);
+    clip-path: polygon(50% 6%, 6% 94%, 94% 94%);
+}
+
+.pw-symbol {
+    position: relative;
+    z-index: 1;
+    font-weight: bold;
+    color: #111;
+    line-height: 1;
+    padding-bottom: 12%;
+}
+
+/* moći u spremištu ne hvataju klik (klik ide na slot) */
+.slot .vis-color,
+.slot .vis-power {
+    pointer-events: none;
+}
+
+/* ===== Ploča ===== */
+.board {
+    display: grid;
+    grid-template-columns: repeat(5, 120px);
+    gap: 15px;
+}
+
+.big-square {
+    width: 120px;
+    height: 120px;
+    background: #1f2937;
+    border: 3px solid #555;
+    border-radius: 12px;
+    padding: 5px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 5px;
+}
+
+.cell {
+    background: #374151;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.1s;
+}
+
+.cell:hover {
+    opacity: 0.8;
+}
+
+.info {
+    margin-top: 20px;
+    font-size: 22px;
+    text-align: center;
+}
+
+/* ===== Legenda moći ===== */
+.legend {
+    margin-top: 25px;
+    font-size: 13px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.leg-tri {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+    color: #111;
+    line-height: 1;
+    padding-bottom: 2px;
+    box-sizing: border-box;
+    clip-path: polygon(50% 6%, 6% 94%, 94% 94%);
+}
+
+/* boje moći */
+.power-white  { --pw: #e5e7eb; background: #e5e7eb; }
+.power-add    { --pw: #22c55e; background: #22c55e; }
+.power-remove { --pw: #ef4444; background: #ef4444; }
+.power-fill   { --pw: #3b82f6; background: #3b82f6; }
