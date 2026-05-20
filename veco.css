@@ -186,3 +186,58 @@ h3 {
 .power-add    { --pw: #22c55e; background: #22c55e; }
 .power-remove { --pw: #ef4444; background: #ef4444; }
 .power-fill   { --pw: #3b82f6; background: #3b82f6; }
+
+/* ===== Game Over ===== */
+.overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+.overlay.show {
+    display: flex;
+}
+
+.overlay-box {
+    background: #1f2937;
+    border: 3px solid #555;
+    border-radius: 16px;
+    padding: 40px 50px;
+    text-align: center;
+}
+
+.overlay-box h2 {
+    margin: 0 0 10px;
+    font-size: 34px;
+    color: #ef4444;
+}
+
+.overlay-box p {
+    margin: 6px 0;
+    font-size: 16px;
+}
+
+.overlay-box .final-score {
+    font-size: 22px;
+    margin: 14px 0 22px;
+}
+
+.overlay-box button {
+    background: #22c55e;
+    color: #111;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.overlay-box button:hover {
+    transform: scale(1.05);
+}

@@ -30,6 +30,7 @@ const POWER_CHANCE = 0.3;
 let incomingItem = null;   // { kind:"color", color } | { kind:"power", power }
 let selected = null;       // ono što držimo "u ruci"
 let score = 0;
+let gameOver = false;
 
 let storage = [null, null, null, null, null];
 
@@ -41,6 +42,9 @@ const heldDiv = document.getElementById("held");
 const storageDiv = document.getElementById("storage");
 const boardDiv = document.getElementById("board");
 const scoreDiv = document.getElementById("score");
+const overlay = document.getElementById("overlay");
+const finalScoreSpan = document.getElementById("finalScore");
+const restartBtn = document.getElementById("restartBtn");
 
 // ===== GENERIRANJE NOVOG PREDMETA =====
 function randomColor() {
@@ -94,12 +98,14 @@ function renderIncoming() {
     const el = makeVisual(incomingItem, 70);
 
     el.onclick = () => {
+        if (gameOver) return;
         // uzmemo samo ako ruka prazna (da ne izgubimo ono što već držimo)
         if (selected) return;
 
         selected = incomingItem;
         generateNext();
         renderHeld();
+        checkGameOver();
     };
 
     incomingDiv.appendChild(el);
@@ -128,6 +134,7 @@ function renderStorage() {
         }
 
         slot.onclick = () => {
+            if (gameOver) return;
             const slotItem = storage[index];
 
             if (selected && !slotItem) {
@@ -146,6 +153,7 @@ function renderStorage() {
 
             renderStorage();
             renderHeld();
+            checkGameOver();
         };
 
         storageDiv.appendChild(slot);
@@ -191,6 +199,7 @@ function renderBoard() {
 // ===== KLIK NA POLJE =====
 function applyToCell(square, cellIndex) {
 
+    if (gameOver) return;
     if (!selected) return;
 
     if (selected.kind === "color") {
@@ -289,6 +298,70 @@ function checkCompleted(square) {
         }, 200);
     }
 }
+
+// ===== MOŽE LI SE PREDMET IGDJE ODIGRATI =====
+function canPlaceColor(square, color) {
+    const hasEmpty = square.cells.some(c => c === null);
+    if (!hasEmpty) return false;
+    const existing = square.cells.filter(c => c !== null);
+    return existing.length === 0 || existing[0] === color;
+}
+
+function canApplyPower(square, power) {
+    const hasEmpty = square.cells.some(c => c === null);
+    const hasColor = square.cells.some(c => c !== null);
+
+    if (power === "white")  return true;               // boja se može preko bilo kojeg polja
+    if (power === "remove") return hasColor;            // treba obojano polje
+    if (power === "add")    return hasColor && hasEmpty;
+    if (power === "fill")   return hasColor && hasEmpty;
+    return false;
+}
+
+function canPlaceItem(item) {
+    if (item.kind === "color") {
+        return bigSquares.some(sq => canPlaceColor(sq, item.color));
+    }
+    return bigSquares.some(sq => canApplyPower(sq, item.power));
+}
+
+// ===== GAME OVER =====
+// Zaglavljen si tek kad su ruka I svih 5 mjesta puni, a ništa se ne može odigrati.
+function checkGameOver() {
+    if (gameOver) return;
+
+    const storageFull = storage.every(s => s !== null);
+    const handOccupied = selected !== null;
+    if (!handOccupied || !storageFull) return;
+
+    const buffer = [selected, ...storage];
+    if (buffer.some(canPlaceItem)) return;
+
+    gameOver = true;
+    showGameOver();
+}
+
+function showGameOver() {
+    finalScoreSpan.textContent = score;
+    overlay.classList.add("show");
+}
+
+function restart() {
+    selected = null;
+    score = 0;
+    scoreDiv.textContent = "0";
+    storage = [null, null, null, null, null];
+    bigSquares.forEach(sq => sq.cells = [null, null, null, null]);
+    gameOver = false;
+    overlay.classList.remove("show");
+
+    renderBoard();
+    renderStorage();
+    renderHeld();
+    generateNext();
+}
+
+restartBtn.onclick = restart;
 
 // ===== START =====
 createBoard();
