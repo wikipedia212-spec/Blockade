@@ -36,17 +36,6 @@ h3 {
     justify-content: center;
 }
 
-/* ===== U ruci ===== */
-.held {
-    height: 70px;
-    margin-bottom: 20px;
-    border: 2px dashed #555;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
 /* ===== Spremište ===== */
 .storage {
     display: grid;
@@ -71,7 +60,7 @@ h3 {
     border-radius: 10px;
     border: 3px solid white;
     box-sizing: border-box;
-    cursor: pointer;
+    cursor: grab;
     transition: transform 0.15s;
 }
 
@@ -80,10 +69,19 @@ h3 {
 }
 
 /* bijela kockica = džoker, prikaže oznaku u sredini */
-.vis-color.is-joker {
+.vis-color.is-joker,
+.vis-color.has-num {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* broj boje (pomoć za daltoniste) */
+.color-num {
+    font-weight: bold;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
 }
 
 .joker-mark {
@@ -96,9 +94,9 @@ h3 {
 .vis-power {
     position: relative;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: center;
-    cursor: pointer;
+    cursor: grab;
     transition: transform 0.15s;
 }
 
@@ -111,7 +109,7 @@ h3 {
     position: absolute;
     inset: 0;
     background: var(--pw);
-    clip-path: polygon(50% 6%, 6% 94%, 94% 94%);
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
 }
 
 .pw-symbol {
@@ -120,13 +118,17 @@ h3 {
     font-weight: bold;
     color: #111;
     line-height: 1;
-    padding-bottom: 12%;
 }
 
-/* moći u spremištu ne hvataju klik (klik ide na slot) */
-.slot .vis-color,
-.slot .vis-power {
-    pointer-events: none;
+/* vizualni feedback dok se predmet povlači iznad cilja */
+.cell.drag-over {
+    outline: 3px solid #fff;
+    outline-offset: -3px;
+}
+
+.slot.drag-over {
+    border-color: #fff;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 /* ===== Ploča ===== */
@@ -192,15 +194,14 @@ h3 {
     height: 22px;
     flex: 0 0 22px;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: center;
     font-size: 11px;
     font-weight: bold;
     color: #111;
     line-height: 1;
-    padding-bottom: 2px;
     box-sizing: border-box;
-    clip-path: polygon(50% 6%, 6% 94%, 94% 94%);
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
 }
 
 /* boje moći */
@@ -245,7 +246,12 @@ h3 {
 
 .overlay-box .final-score {
     font-size: 22px;
-    margin: 14px 0 22px;
+    margin: 14px 0 4px;
+}
+
+.overlay-box .final-level {
+    font-size: 18px;
+    margin: 0 0 22px;
 }
 
 .overlay-box button {
