@@ -58,6 +58,9 @@ let gameOver = false;
 
 let level = 1;
 let completedThisLevel = 0;
+let collectedCount = 0;    // koliko je boja skupljeno u spremnik
+let combo = 0;             // koliko je kvadrata zatvoreno zaredom
+let completedThisDrop = false; // je li trenutni potez na ploču zatvorio kvadrat
 let activeColors = [];     // prave boje aktivne na ovom nivou + bijeli džoker
 
 let storage = [null, null, null, null, null];
@@ -74,6 +77,8 @@ const scoreDiv = document.getElementById("score");
 const levelSpan = document.getElementById("level");
 const progressSpan = document.getElementById("progress");
 const targetSpan = document.getElementById("target");
+const collectorBox = document.getElementById("collector");
+const collectedSpan = document.getElementById("collected");
 const overlay = document.getElementById("overlay");
 const finalScoreSpan = document.getElementById("finalScore");
 const finalLevelSpan = document.getElementById("finalLevel");
@@ -299,7 +304,11 @@ function dropOnCell(square, cellIndex) {
     if (!item) return;
 
     // ilegalan potez -> predmet ostaje gdje je
+    completedThisDrop = false;
     if (!tryApplyItem(square, cellIndex, item)) return;
+
+    // valjan potez koji NIJE zatvorio kvadrat prekida combo niz
+    if (!completedThisDrop) combo = 0;
 
     consumeDragSource();
     dragSource = null;
@@ -407,6 +416,77 @@ function tryApplyPower(square, cellIndex, power) {
     return false;
 }
 
+// ===== ANIMACIJE =====
+// Kratki "poskok" elementa (npr. bodovi, spremnik)
+function pulse(el) {
+    el.animate(
+        [{ transform: "scale(1)" }, { transform: "scale(1.4)" }, { transform: "scale(1)" }],
+        { duration: 300, easing: "ease-out" }
+    );
+}
+
+// Boje iz popunjenog kvadratića "odlete" u spremnik
+function flyColorsToCollector(rects, colors) {
+    const box = collectorBox.getBoundingClientRect();
+    const targetX = box.left + box.width / 2;
+    const targetY = box.top + box.height / 2;
+
+    rects.forEach((r, i) => {
+        const color = colors[i];
+
+        const tile = document.createElement("div");
+        tile.className = "fly-tile";
+        tile.style.left = r.left + "px";
+        tile.style.top = r.top + "px";
+        tile.style.width = r.width + "px";
+        tile.style.height = r.height + "px";
+
+        tile.style.background = color;
+        if (color === WHITE) {
+            tile.classList.add("is-joker");
+            tile.innerHTML = jokerSvg();
+        }
+
+        document.body.appendChild(tile);
+
+        const dx = targetX - (r.left + r.width / 2);
+        const dy = targetY - (r.top + r.height / 2);
+
+        const anim = tile.animate(
+            [
+                { transform: "translate(0,0) scale(1)", opacity: 1 },
+                { transform: `translate(${dx}px, ${dy}px) scale(0.25)`, opacity: 0.5 }
+            ],
+            { duration: 500, easing: "cubic-bezier(0.5, 0, 0.75, 1)", delay: i * 60, fill: "forwards" }
+        );
+
+        anim.onfinish = () => {
+            tile.remove();
+            collectedCount++;
+            collectedSpan.textContent = collectedCount;
+            pulse(collectorBox);
+        };
+    });
+}
+
+// Bljesak combo bonusa (kad zatvoriš kvadrate zaredom)
+function showCombo(comboCount, bonus) {
+    const pop = document.createElement("div");
+    pop.className = "combo-pop";
+    pop.textContent = "Combo x" + comboCount + "  +" + bonus;
+    document.body.appendChild(pop);
+    pop.addEventListener("animationend", () => pop.remove());
+}
+
+// Bljesak natpisa kod prelaska na novi nivo
+function showLevelUp() {
+    const banner = document.createElement("div");
+    banner.className = "level-up";
+    banner.textContent = "Nivo " + level + "!";
+    document.body.appendChild(banner);
+    banner.addEventListener("animationend", () => banner.remove());
+}
+
 // ===== PROVJERA POPUNJENOSTI =====
 function checkCompleted(square) {
 
@@ -418,36 +498,47 @@ function checkCompleted(square) {
     const same = square.cells.every(c => c === WHITE || c === real);
 
     if (same) {
-        score += 4;
+        // combo: svaki sljedeći zatvoreni kvadrat zaredom nosi sve veći bonus
+        completedThisDrop = true;
+        combo++;
+        const bonus = (combo - 1) * 4;   // 2. zaredom +4, 3. +8, ...
+        score += 4 + bonus;
         scoreDiv.textContent = score;
+        pulse(scoreDiv);
+
+        if (bonus > 0) showCombo(combo, bonus);
 
         completedThisLevel++;
         if (completedThisLevel >= targetForLevel(level)) {
             level++;
             completedThisLevel = 0;
             rebuildActiveColors();
+            showLevelUp();
         }
         updateHud();
 
-        // kvadratić se prazni za 200ms; do tad ga tretiramo kao (uskoro) prazan
-        square.pendingClear = true;
-        setTimeout(() => {
-            square.cells = [null, null, null, null];
-            square.pendingClear = false;
-            renderBoard();
-        }, 200);
+        // zapamti pozicije i boje polja, pa ih "pošalji" u spremnik
+        const cells = square.element.children;
+        const rects = [];
+        const colors = [];
+        for (let i = 0; i < 4; i++) {
+            rects.push(cells[i].getBoundingClientRect());
+            colors.push(square.cells[i]);
+        }
+
+        // boje su odletjele -> kvadratić se odmah oslobađa
+        square.cells = [null, null, null, null];
+        flyColorsToCollector(rects, colors);
     }
 }
 
 // ===== MOŽE LI SE PREDMET IGDJE ODIGRATI =====
 function canPlaceColor(square, color) {
-    if (square.pendingClear) return true;   // uskoro prazan -> prima bilo koju boju
     const hasEmpty = square.cells.some(c => c === null);
     return hasEmpty && colorFitsSquare(square, color);
 }
 
 function canApplyPower(square, power) {
-    if (square.pendingClear) return false;  // uskoro prazan -> moći nemaju na čemu raditi
     const hasEmpty = square.cells.some(c => c === null);
     const hasAny = square.cells.some(c => c !== null);
     const hasReal = squareRealColor(square) !== null;
@@ -500,6 +591,10 @@ function restart() {
     scoreDiv.textContent = "0";
     level = 1;
     completedThisLevel = 0;
+    collectedCount = 0;
+    collectedSpan.textContent = "0";
+    combo = 0;
+    completedThisDrop = false;
     rebuildActiveColors();
     storage = [null, null, null, null, null];
     bigSquares.forEach(sq => sq.cells = [null, null, null, null]);
