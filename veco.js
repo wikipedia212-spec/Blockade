@@ -23,8 +23,15 @@ const ALL_COLORS = [
 
 const WHITE = "#ffffff";
 
-// Koliko pravih boja je aktivno na 1. nivou (svaki nivo +1)
-const START_COLORS = 9;
+// Postavke težine: koliko je boja aktivno na 1. nivou + šansa za moći
+const DIFFICULTIES = {
+    easy:   { startColors: 6,  powerChance: 0.08, label: "Lako" },
+    normal: { startColors: 9,  powerChance: 0.05, label: "Normalno" },
+    hard:   { startColors: 12, powerChance: 0.03, label: "Teško" }
+};
+let difficulty = "normal";
+let startColors = DIFFICULTIES.normal.startColors;
+let powerChance = DIFFICULTIES.normal.powerChance;
 
 // Oznaka džokera: outline jokerske kape/glave, okrenut naopačke (rotacija 180°)
 function jokerSvg() {
@@ -48,9 +55,6 @@ const POWERS = {
 };
 const POWER_KEYS = Object.keys(POWERS);
 
-// Šansa da umjesto boje dođe dijamant (moć)
-const POWER_CHANCE = 0.05;
-
 // ===== STANJE =====
 let incomingItem = null;   // { kind:"color", color } | { kind:"power", power }
 let score = 0;
@@ -62,6 +66,11 @@ let collectedCount = 0;    // koliko je boja skupljeno u spremnik
 let combo = 0;             // koliko je kvadrata zatvoreno zaredom
 let completedThisDrop = false; // je li trenutni potez na ploču zatvorio kvadrat
 let activeColors = [];     // prave boje aktivne na ovom nivou + bijeli džoker
+
+const MAX_SCORES = 5;      // koliko igrača se pamti na ljestvici
+let leaderboard = [];      // [{name, score, level}], sortirano silazno (localStorage)
+let playerName = "";       // zadnje upisano ime igrača
+let currentEntry = null;   // unos trenutne igre na ljestvici (za živo uređivanje imena)
 
 let storage = [null, null, null, null, null];
 
@@ -82,7 +91,19 @@ const collectedSpan = document.getElementById("collected");
 const overlay = document.getElementById("overlay");
 const finalScoreSpan = document.getElementById("finalScore");
 const finalLevelSpan = document.getElementById("finalLevel");
+const newRecordP = document.getElementById("newRecord");
+const nameInput = document.getElementById("nameInput");
+const btnSaveName = document.getElementById("btnSaveName");
 const restartBtn = document.getElementById("restartBtn");
+
+// Izbornici
+const menuBtn = document.getElementById("menuBtn");
+const screenMain = document.getElementById("screen-main");
+const screenSettings = document.getElementById("screen-settings");
+const screenHighscore = document.getElementById("screen-highscore");
+const screenPause = document.getElementById("screen-pause");
+const hsListDiv = document.getElementById("hsList");
+const allScreens = [screenMain, screenSettings, screenHighscore, screenPause, overlay];
 
 // ===== NIVOI =====
 // Nivo 1 traži 10 popunjenih kvadratića, svaki sljedeći +1.
@@ -90,9 +111,9 @@ function targetForLevel(lvl) {
     return 9 + lvl;
 }
 
-// Aktivne boje za trenutni nivo = prvih (START_COLORS + nivo-1) pravih boja + džoker.
+// Aktivne boje za trenutni nivo = prvih (startColors + nivo-1) pravih boja + džoker.
 function rebuildActiveColors() {
-    const count = Math.min(START_COLORS + (level - 1), ALL_COLORS.length);
+    const count = Math.min(startColors + (level - 1), ALL_COLORS.length);
     activeColors = ALL_COLORS.slice(0, count).concat([WHITE]);
 }
 
@@ -109,7 +130,7 @@ function randomColor() {
 
 function generateNext() {
 
-    if (Math.random() < POWER_CHANCE) {
+    if (Math.random() < powerChance) {
         const power = POWER_KEYS[Math.floor(Math.random() * POWER_KEYS.length)];
         incomingItem = { kind: "power", power: power };
     } else {
@@ -498,10 +519,10 @@ function checkCompleted(square) {
     const same = square.cells.every(c => c === WHITE || c === real);
 
     if (same) {
-        // combo: svaki sljedeći zatvoreni kvadrat zaredom nosi sve veći bonus
+        // combo: bonus se udvostručuje (x2 +4, x3 +8, x4 +16, x5 +32, ...)
         completedThisDrop = true;
         combo++;
-        const bonus = (combo - 1) * 4;   // 2. zaredom +4, 3. +8, ...
+        const bonus = combo >= 2 ? 4 * Math.pow(2, combo - 2) : 0;
         score += 4 + bonus;
         scoreDiv.textContent = score;
         pulse(scoreDiv);
@@ -581,12 +602,136 @@ function checkGameOver() {
 function showGameOver() {
     finalScoreSpan.textContent = score;
     finalLevelSpan.textContent = level;
-    overlay.classList.add("show");
+
+    // pokušaj uvrstiti rezultat na ljestvicu (top 5)
+    currentEntry = null;
+    if (qualifiesForBoard(score)) {
+        currentEntry = { name: playerName, score: score, level: level };
+        leaderboard.push(currentEntry);
+        sortLeaderboard();
+        if (leaderboard.indexOf(currentEntry) === -1) currentEntry = null;
+        saveLeaderboard();
+    }
+
+    if (currentEntry) {
+        const rank = leaderboard.indexOf(currentEntry) + 1;
+        newRecordP.textContent = rank === 1 ? "Novi rekord! 🎉" : ("Ušao si u top 5! (" + rank + ".)");
+        newRecordP.style.display = "";
+    } else {
+        newRecordP.style.display = "none";
+    }
+
+    nameInput.value = playerName;
+
     renderIncoming();   // makni draggable s dolazećeg
     renderStorage();    // makni draggable iz spremišta
+    openScreen(overlay);
 }
 
-function restart() {
+// Upis imena na kraju igre (sprema se odmah; ažurira unos na ljestvici ako je ušao)
+function applyName() {
+    playerName = nameInput.value.trim();
+    savePlayerName();
+    if (currentEntry) {
+        currentEntry.name = playerName;
+        saveLeaderboard();
+    }
+}
+
+// ===== HIGH SCORE / LJESTVICA (localStorage) =====
+function loadHighScore() {
+    try {
+        const raw = localStorage.getItem("blockade_leaderboard");
+        leaderboard = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(leaderboard)) leaderboard = [];
+        playerName = localStorage.getItem("blockade_player_name") || "";
+    } catch (e) {
+        leaderboard = [];
+        playerName = "";
+    }
+    sortLeaderboard();
+}
+
+function sortLeaderboard() {
+    leaderboard.sort((a, b) => b.score - a.score);
+    if (leaderboard.length > MAX_SCORES) leaderboard.length = MAX_SCORES;
+}
+
+function qualifiesForBoard(s) {
+    if (s <= 0) return false;
+    if (leaderboard.length < MAX_SCORES) return true;
+    return s > leaderboard[leaderboard.length - 1].score;
+}
+
+function saveLeaderboard() {
+    try { localStorage.setItem("blockade_leaderboard", JSON.stringify(leaderboard)); } catch (e) {}
+}
+
+function savePlayerName() {
+    try { localStorage.setItem("blockade_player_name", playerName); } catch (e) {}
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function updateHighscoreScreen() {
+    if (leaderboard.length === 0) {
+        hsListDiv.innerHTML = '<p class="hs-empty">Još nema rezultata.</p>';
+        return;
+    }
+    let html = "";
+    leaderboard.forEach((e, i) => {
+        const nm = e.name ? escapeHtml(e.name) : "—";
+        html +=
+            '<div class="hs-row">' +
+                '<span class="hs-rank">' + (i + 1) + '.</span>' +
+                '<span class="hs-pname">' + nm + '</span>' +
+                '<span class="hs-pscore">' + e.score + '</span>' +
+                '<span class="hs-plevel">niv ' + e.level + '</span>' +
+            '</div>';
+    });
+    hsListDiv.innerHTML = html;
+}
+
+// ===== TEŽINA (postavke) =====
+function setDifficulty(d, save) {
+    if (!DIFFICULTIES[d]) return;
+    difficulty = d;
+    startColors = DIFFICULTIES[d].startColors;
+    powerChance = DIFFICULTIES[d].powerChance;
+    if (save) {
+        try { localStorage.setItem("blockade_difficulty", d); } catch (e) {}
+    }
+    updateDiffButtons();
+}
+
+function loadDifficulty() {
+    let d = "normal";
+    try { d = localStorage.getItem("blockade_difficulty") || "normal"; } catch (e) {}
+    setDifficulty(DIFFICULTIES[d] ? d : "normal", false);
+}
+
+function updateDiffButtons() {
+    document.querySelectorAll(".diff-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.diff === difficulty);
+    });
+}
+
+// ===== IZBORNICI =====
+function openScreen(screen) {
+    allScreens.forEach(s => s.classList.remove("show"));
+    if (screen) screen.classList.add("show");
+    menuBtn.style.display = screen ? "none" : "";
+}
+
+function closeToGame() {
+    allScreens.forEach(s => s.classList.remove("show"));
+    menuBtn.style.display = "";
+}
+
+// ===== POKRETANJE / RESET IGRE =====
+function startGame() {
     score = 0;
     scoreDiv.textContent = "0";
     level = 1;
@@ -600,19 +745,67 @@ function restart() {
     bigSquares.forEach(sq => sq.cells = [null, null, null, null]);
     dragSource = null;
     gameOver = false;
-    overlay.classList.remove("show");
 
     updateHud();
     renderBoard();
     renderStorage();
     generateNext();
+    closeToGame();
 }
 
-restartBtn.onclick = restart;
+// ===== POVEZIVANJE GUMBA =====
+menuBtn.onclick = () => { if (!gameOver) openScreen(screenPause); };
+
+document.getElementById("btnStart").onclick = startGame;
+document.getElementById("btnSettings").onclick = () => openScreen(screenSettings);
+document.getElementById("btnHighscore").onclick = () => { updateHighscoreScreen(); openScreen(screenHighscore); };
+
+document.getElementById("btnSettingsBack").onclick = () => openScreen(screenMain);
+document.getElementById("btnHsBack").onclick = () => openScreen(screenMain);
+
+document.querySelectorAll(".diff-btn").forEach(btn => {
+    btn.onclick = () => setDifficulty(btn.dataset.diff, true);
+});
+
+document.getElementById("btnResetHs").onclick = () => {
+    leaderboard = [];
+    saveLeaderboard();
+    updateHighscoreScreen();
+};
+
+// Upis imena na Game Over ekranu
+nameInput.oninput = applyName;
+nameInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { applyName(); nameInput.blur(); }
+});
+btnSaveName.onclick = () => {
+    applyName();
+    btnSaveName.textContent = "Spremljeno ✓";
+    setTimeout(() => { btnSaveName.textContent = "Spremi"; }, 1200);
+};
+
+document.getElementById("btnResume").onclick = closeToGame;
+document.getElementById("btnPauseRestart").onclick = startGame;
+document.getElementById("btnPauseMain").onclick = () => openScreen(screenMain);
+
+restartBtn.onclick = startGame;
+document.getElementById("btnGoMain").onclick = () => openScreen(screenMain);
+
+// Escape: pauza / nastavi (samo dok igra traje)
+document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || gameOver) return;
+    if (screenPause.classList.contains("show")) {
+        closeToGame();
+    } else if (!allScreens.some(s => s.classList.contains("show"))) {
+        openScreen(screenPause);
+    }
+});
 
 // ===== START =====
-rebuildActiveColors();
-updateHud();
+loadHighScore();
+loadDifficulty();
 createBoard();
+renderBoard();
 renderStorage();
-generateNext();
+updateHud();
+openScreen(screenMain);

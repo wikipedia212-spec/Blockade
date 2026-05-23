@@ -315,9 +315,18 @@ h3 {
 }
 
 .overlay-box h2 {
-    margin: 0 0 10px;
-    font-size: 34px;
+    margin: 0 0 14px;
+    font-size: 32px;
+    color: #fff;
+}
+
+.overlay-box h2.gameover-title {
     color: #ef4444;
+}
+
+.overlay-box .menu-title {
+    font-size: 46px;
+    margin-bottom: 22px;
 }
 
 .overlay-box p {
@@ -336,6 +345,9 @@ h3 {
 }
 
 .overlay-box button {
+    display: block;
+    width: 240px;
+    margin: 8px auto;
     background: #22c55e;
     color: #111;
     border: none;
@@ -348,5 +360,155 @@ h3 {
 }
 
 .overlay-box button:hover {
+    transform: scale(1.05);
+}
+
+/* sekundarni gumb (npr. reset high score) */
+.overlay-box .btn-secondary {
+    background: #64748b;
+    color: #fff;
+}
+
+/* gumbi za težinu (u redu) */
+.diff-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 6px 0 18px;
+}
+
+.diff-row .diff-btn {
+    width: auto;
+    flex: 1;
+    margin: 0;
+    padding: 10px 4px;
+    font-size: 14px;
+    background: #374151;
+    color: #fff;
+}
+
+.diff-row .diff-btn.active {
+    background: #22c55e;
+    color: #111;
+}
+
+/* novi rekord na Game Over ekranu */
+.overlay-box .new-record {
+    color: #fbbf24;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0 0 16px;
+}
+
+/* unos imena na Game Over ekranu */
+.name-entry {
+    margin: 0 0 18px;
+}
+
+.name-entry label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.name-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.name-row input {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 2px solid #555;
+    border-radius: 10px;
+    background: #111827;
+    color: #fff;
+    font-size: 16px;
+}
+
+.name-row input:focus {
+    outline: none;
+    border-color: #22c55e;
+}
+
+.name-row button {
+    width: auto;
+    margin: 0;
+    padding: 10px 16px;
+    flex: 0 0 auto;
+}
+
+/* ===== Ljestvica (top 5) ===== */
+.hs-list {
+    margin: 6px 0 20px;
+    min-width: 260px;
+}
+
+.hs-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.hs-row:nth-child(odd) {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.hs-rank {
+    width: 22px;
+    color: #fbbf24;
+    font-weight: bold;
+    text-align: right;
+}
+
+.hs-pname {
+    flex: 1;
+    text-align: left;
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hs-pscore {
+    min-width: 50px;
+    text-align: right;
+}
+
+.hs-plevel {
+    min-width: 52px;
+    text-align: right;
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+.hs-empty {
+    color: #9ca3af;
+}
+
+/* ===== Gumb izbornika tijekom igre ===== */
+.menu-btn {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 5;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 10px;
+    background: #1f2937;
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+}
+
+.menu-btn:hover {
+    background: #374151;
     transform: scale(1.05);
 }

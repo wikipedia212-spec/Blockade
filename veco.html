@@ -46,13 +46,70 @@
 
 </div>
 
+<!-- Gumb izbornika tijekom igre -->
+<button class="menu-btn" id="menuBtn" title="Izbornik (Esc)">☰</button>
+
+<!-- Glavni izbornik -->
+<div class="overlay" id="screen-main">
+    <div class="overlay-box">
+        <h2 class="menu-title">Blockade</h2>
+        <button id="btnStart">Start</button>
+        <button id="btnSettings">Postavke</button>
+        <button id="btnHighscore">High score</button>
+    </div>
+</div>
+
+<!-- Postavke -->
+<div class="overlay" id="screen-settings">
+    <div class="overlay-box">
+        <h2>Postavke</h2>
+        <p>Težina:</p>
+        <div class="diff-row">
+            <button class="diff-btn" data-diff="easy">Lako</button>
+            <button class="diff-btn" data-diff="normal">Normalno</button>
+            <button class="diff-btn" data-diff="hard">Teško</button>
+        </div>
+        <button id="btnResetHs" class="btn-secondary">Resetiraj high score</button>
+        <button id="btnSettingsBack">Natrag</button>
+    </div>
+</div>
+
+<!-- High score -->
+<div class="overlay" id="screen-highscore">
+    <div class="overlay-box">
+        <h2>High score</h2>
+        <div class="hs-list" id="hsList"></div>
+        <button id="btnHsBack">Natrag</button>
+    </div>
+</div>
+
+<!-- Pauza (usred igre) -->
+<div class="overlay" id="screen-pause">
+    <div class="overlay-box">
+        <h2>Pauza</h2>
+        <button id="btnResume">Nastavi</button>
+        <button id="btnPauseRestart">Restart</button>
+        <button id="btnPauseMain">Glavni izbornik</button>
+    </div>
+</div>
+
+<!-- Game over -->
 <div class="overlay" id="overlay">
     <div class="overlay-box">
-        <h2>Game Over</h2>
+        <h2 class="gameover-title">Game Over</h2>
         <p>Nema više poteza.</p>
         <p class="final-score">Rezultat: <span id="finalScore">0</span></p>
         <p class="final-level">Dosegnuti nivo: <span id="finalLevel">1</span></p>
+        <p class="new-record" id="newRecord">Novi rekord! 🎉</p>
+        <div class="name-entry">
+            <label for="nameInput">Tvoje ime:</label>
+            <div class="name-row">
+                <input type="text" id="nameInput" maxlength="12" placeholder="Ime">
+                <button id="btnSaveName">Spremi</button>
+            </div>
+        </div>
         <button id="restartBtn">Igraj ponovno</button>
+        <button id="btnGoMain">Glavni izbornik</button>
     </div>
 </div>
 
