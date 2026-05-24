@@ -9,6 +9,16 @@ body {
     min-height: 100vh;
 }
 
+/* pozadinska animacija (bijele točkice s tragom) */
+#bg {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+}
+
 .game {
     display: flex;
     gap: 30px;
@@ -17,6 +27,13 @@ body {
 
 .left-panel {
     width: 260px;
+    flex: 0 0 260px;
+}
+
+/* desni panel (opisi moći) -> uravnotežuje lijevi panel, ploča ostaje na sredini */
+.right-panel {
+    width: 260px;
+    flex: 0 0 260px;
 }
 
 h1 {
@@ -120,6 +137,10 @@ h3 {
     line-height: 1;
 }
 
+.drop-mark {
+    display: block;
+}
+
 /* vizualni feedback dok se predmet povlači iznad cilja */
 .cell.drag-over {
     outline: 3px solid #fff;
@@ -135,7 +156,8 @@ h3 {
 .board {
     display: grid;
     grid-template-columns: repeat(5, 120px);
-    gap: 15px;
+    /* row-gap column-gap: manji razmak gore-dolje, isti lijevo-desno */
+    gap: 2px 15px;
 }
 
 .big-square {
@@ -388,6 +410,76 @@ h3 {
 }
 
 .diff-row .diff-btn.active {
+    background: #22c55e;
+    color: #111;
+}
+
+/* gumbi za odabir pozadine (prelamaju se u više redova) */
+.bg-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin: 6px 0 18px;
+}
+
+.bg-row .bg-btn {
+    width: auto;
+    flex: 1 1 28%;
+    margin: 0;
+    padding: 10px 4px;
+    font-size: 14px;
+    background: #374151;
+    color: #fff;
+}
+
+.bg-row .bg-btn.active {
+    background: #22c55e;
+    color: #111;
+}
+
+/* gumbi za temu (uzorak) kvadratića */
+.theme-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 6px 0 18px;
+}
+
+.theme-row .theme-btn {
+    width: auto;
+    flex: 1;
+    margin: 0;
+    padding: 10px 4px;
+    font-size: 14px;
+    background: #374151;
+    color: #fff;
+}
+
+.theme-row .theme-btn.active {
+    background: #22c55e;
+    color: #111;
+}
+
+/* gumbi za uključivanje/isključivanje brojeva */
+.num-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 6px 0 18px;
+}
+
+.num-row .num-btn {
+    width: auto;
+    flex: 1;
+    margin: 0;
+    padding: 10px 4px;
+    font-size: 14px;
+    background: #374151;
+    color: #fff;
+}
+
+.num-row .num-btn.active {
     background: #22c55e;
     color: #111;
 }

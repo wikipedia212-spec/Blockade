@@ -9,6 +9,8 @@
 
 <body>
 
+<canvas id="bg"></canvas>
+
 <div class="game">
 
     <div class="left-panel">
@@ -32,17 +34,20 @@
             <span id="collected">0</span>
         </div>
 
+    </div>
+
+    <div class="board" id="board"></div>
+
+    <!-- desni panel: opisi moći (uravnotežuje lijevi panel -> ploča je na sredini) -->
+    <div class="right-panel">
         <div class="legend">
             <h3>Dijamanti (moći)</h3>
-            <div class="legend-item"><span class="leg-tri power-white">⬜</span> Pretvori jedno polje u džoker (bijelo, paše uz sve)</div>
+            <div class="legend-item"><span class="leg-tri power-white"><svg class="drop-mark" width="12" height="12" viewBox="0 0 24 25" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.5 C 14 8 19 12 19 15.5 A 7 7 0 0 1 5 15.5 C 5 12 10 8 12 2.5 Z" fill="none" stroke="#111827" stroke-width="2.2" stroke-linejoin="round"/></svg></span> Pretvori jedno polje u džoker (bijelo, paše uz sve)</div>
             <div class="legend-item"><span class="leg-tri power-add">+</span> Dodaj boju koja fali (1 polje)</div>
             <div class="legend-item"><span class="leg-tri power-remove">–</span> Ukloni jednu boju iz kvadrata</div>
             <div class="legend-item"><span class="leg-tri power-fill">★</span> Napuni cijeli kvadrat bojom</div>
         </div>
-
     </div>
-
-    <div class="board" id="board"></div>
 
 </div>
 
@@ -69,6 +74,26 @@
             <button class="diff-btn" data-diff="normal">Normalno</button>
             <button class="diff-btn" data-diff="hard">Teško</button>
         </div>
+        <p>Pozadina:</p>
+        <div class="bg-row">
+            <button class="bg-btn" data-bg="dots">Točkice</button>
+            <button class="bg-btn" data-bg="water">Voda</button>
+            <button class="bg-btn" data-bg="constellation">Mreža</button>
+            <button class="bg-btn" data-bg="aurora">Aurora</button>
+            <button class="bg-btn" data-bg="warp">Warp</button>
+            <button class="bg-btn" data-bg="grid">Neon</button>
+            <button class="bg-btn" data-bg="none">Tamno</button>
+        </div>
+        <p>Kvadratići (uzorak):</p>
+        <div class="theme-row">
+            <button class="theme-btn" data-theme="patterns">Uzorci</button>
+            <button class="theme-btn" data-theme="plain">Glatko</button>
+        </div>
+        <p>Brojevi na bojama:</p>
+        <div class="num-row">
+            <button class="num-btn" data-num="on">Uključeno</button>
+            <button class="num-btn" data-num="off">Isključeno</button>
+        </div>
         <button id="btnResetHs" class="btn-secondary">Resetiraj high score</button>
         <button id="btnSettingsBack">Natrag</button>
     </div>
@@ -88,6 +113,7 @@
     <div class="overlay-box">
         <h2>Pauza</h2>
         <button id="btnResume">Nastavi</button>
+        <button id="btnPauseSettings">Postavke</button>
         <button id="btnPauseRestart">Restart</button>
         <button id="btnPauseMain">Glavni izbornik</button>
     </div>

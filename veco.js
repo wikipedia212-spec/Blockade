@@ -32,6 +32,8 @@ const DIFFICULTIES = {
 let difficulty = "normal";
 let startColors = DIFFICULTIES.normal.startColors;
 let powerChance = DIFFICULTIES.normal.powerChance;
+let cellTheme = "patterns";   // uzorak na kvadratićima: "plain" | "patterns"
+let showNumbers = true;       // prikaz brojeva na bojama (pomoć za daltoniste)
 
 // Oznaka džokera: outline jokerske kape/glave, okrenut naopačke (rotacija 180°)
 function jokerSvg() {
@@ -43,6 +45,14 @@ function jokerSvg() {
             '<circle cx="50" cy="4" r="5"/>' +
             '<circle cx="89" cy="16" r="5"/>' +
         '</g>' +
+    '</svg>';
+}
+
+// Outline kapljice (ikona za moć koja pretvara polje u džoker)
+function dropletSvg(px) {
+    return '<svg class="drop-mark" width="' + px + '" height="' + px + '" viewBox="0 0 24 25" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M12 2.5 C 14 8 19 12 19 15.5 A 7 7 0 0 1 5 15.5 C 5 12 10 8 12 2.5 Z" ' +
+        'fill="none" stroke="#111827" stroke-width="2.2" stroke-linejoin="round"/>' +
     '</svg>';
 }
 
@@ -163,6 +173,77 @@ function numberLabel(color, size) {
     return span;
 }
 
+// Pomakni boju u svjetliju/tamniju nijansu (pct: + svjetlije, - tamnije)
+function shade(hex, pct) {
+    const clamp = (v) => Math.max(0, Math.min(255, Math.round(v + 255 * pct)));
+    const h = (v) => clamp(v).toString(16).padStart(2, "0");
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return "#" + h(r) + h(g) + h(b);
+}
+
+// Svaka boja ima svoj APSTRAKTNI uzorak (azulejo motivi), u malo drugačijoj nijansi.
+// Motivi su mali SVG-ovi koji se ponavljaju (data URI).
+const TILE = 26;
+function tileBg(inner) {
+    const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='" + TILE + "' height='" + TILE +
+        "' viewBox='0 0 " + TILE + " " + TILE + "'>" + inner + "</svg>";
+    return { image: "url(\"data:image/svg+xml," + encodeURIComponent(svg) + "\")", size: TILE + "px " + TILE + "px" };
+}
+
+const PATTERNS = [
+    // cvijet / četverolist
+    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><circle cx='13' cy='6' r='5'/><circle cx='13' cy='20' r='5'/><circle cx='6' cy='13' r='5'/><circle cx='20' cy='13' r='5'/></g>"),
+    // koncentrični krugovi
+    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><circle cx='13' cy='13' r='3.5'/><circle cx='13' cy='13' r='8.5'/></g>"),
+    // valoviti potezi
+    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M1 8 C 7 1, 12 15, 18 8 S 25 1, 30 8'/><path d='M1 19 C 7 12, 12 26, 18 19 S 25 12, 30 19'/></g>"),
+    // vrtuljak (latice)
+    (s) => tileBg("<g fill='" + s + "'><path d='M13 13 Q 12 3 19 4 Q 14 7 13 13'/><path d='M13 13 Q 23 12 22 19 Q 19 14 13 13'/><path d='M13 13 Q 14 23 7 22 Q 12 19 13 13'/><path d='M13 13 Q 3 14 4 7 Q 7 12 13 13'/></g>"),
+    // zvijezda
+    (s) => tileBg("<path d='M13 2 L15.5 10.5 L24 13 L15.5 15.5 L13 24 L10.5 15.5 L2 13 L10.5 10.5 Z' fill='" + s + "'/>"),
+    // latica / oko
+    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M13 4 C 21 8, 21 18, 13 22 C 5 18, 5 8, 13 4 Z'/><circle cx='13' cy='13' r='1.6' fill='" + s + "'/></g>"),
+    // riblje ljuske (lukovi)
+    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='1.8'><path d='M0 0 A 13 13 0 0 1 26 0'/><path d='M0 26 A 13 13 0 0 1 26 26'/><path d='M-13 13 A 13 13 0 0 1 13 13'/><path d='M13 13 A 13 13 0 0 1 39 13'/></g>"),
+    // spirala
+    (s) => tileBg("<path d='M13 13 Q 13 8 18 8 Q 23 8 23 14 Q 23 22 14 22 Q 4 22 4 11' fill='none' stroke='" + s + "' stroke-width='2'/>"),
+    // isprepletene petlje (beskonačno)
+    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><circle cx='8' cy='13' r='5'/><circle cx='18' cy='13' r='5'/></g>"),
+    // kapljica / vrtlog
+    (s) => tileBg("<path d='M13 3 C 13 3 21 11 21 16 A 8 8 0 0 1 5 16 C 5 11 13 3 13 3 Z' fill='none' stroke='" + s + "' stroke-width='2'/>"),
+    // mreža lukova (val)
+    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M0 20 Q 6.5 8 13 20 T 26 20'/><path d='M0 9 Q 6.5 -3 13 9 T 26 9'/></g>"),
+    // trolist
+    (s) => tileBg("<g fill='" + s + "'><circle cx='13' cy='7' r='4'/><circle cx='8' cy='17' r='4'/><circle cx='18' cy='17' r='4'/></g>"),
+    // romb sa zrakama
+    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M13 3 L23 13 L13 23 L3 13 Z'/><path d='M13 8 L18 13 L13 18 L8 13 Z'/></g>"),
+    // polukrugovi
+    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M4 4 A 9 9 0 0 1 22 4'/><path d='M4 22 A 9 9 0 0 0 22 22'/></g>")
+];
+
+// Oboji element + uzorak specifičan za tu boju (u malo drugačijoj nijansi)
+function applyCellPattern(el, color) {
+    el.style.backgroundColor = color;
+    el.style.backgroundPosition = "0 0";
+
+    if (cellTheme === "plain" || color === WHITE) {
+        el.style.backgroundImage = "none";
+        el.style.backgroundSize = "";
+        return;
+    }
+
+    const idx = ALL_COLORS.indexOf(color);
+    const pat = PATTERNS[(idx >= 0 ? idx : 0) % PATTERNS.length];
+    // nijansa uzorka: tamnija na svijetlim bojama, svjetlija na tamnima
+    const sh = isLightColor(color) ? shade(color, -0.16) : shade(color, 0.22);
+
+    const out = pat(sh);
+    el.style.backgroundImage = out.image;
+    el.style.backgroundSize = out.size;
+}
+
 // ===== VIZUAL JEDNOG PREDMETA =====
 function makeVisual(item, size) {
 
@@ -172,11 +253,11 @@ function makeVisual(item, size) {
 
     if (item.kind === "color") {
         el.className = "vis-color";
-        el.style.background = item.color;
+        applyCellPattern(el, item.color);
         if (item.color === WHITE) {
             el.classList.add("is-joker");
             el.innerHTML = jokerSvg();
-        } else {
+        } else if (showNumbers) {
             el.classList.add("has-num");
             el.appendChild(numberLabel(item.color, size));
         }
@@ -184,11 +265,16 @@ function makeVisual(item, size) {
         const p = POWERS[item.power];
         el.className = "vis-power";
         el.style.setProperty("--pw", p.color);
-        el.style.fontSize = (size * 0.32) + "px";
 
         const span = document.createElement("span");
         span.className = "pw-symbol";
-        span.textContent = p.symbol;
+        if (item.power === "white") {
+            // umjesto emojija: outline kapljice
+            span.innerHTML = dropletSvg(size * 0.5);
+        } else {
+            el.style.fontSize = (size * 0.32) + "px";
+            span.textContent = p.symbol;
+        }
         el.appendChild(span);
     }
 
@@ -301,16 +387,24 @@ function renderBoard() {
 
         for (let i = 0; i < 4; i++) {
             const c = square.cells[i];
-            cells[i].style.background = c ? c : "#374151";
 
             if (c === WHITE) {
+                applyCellPattern(cells[i], WHITE);
                 cells[i].innerHTML = jokerSvg();
             } else if (c) {
-                const txt = isLightColor(c) ? "#111" : "#fff";
-                cells[i].innerHTML =
-                    '<span class="color-num" style="color:' + txt + ';font-size:22px">' +
-                    colorNumber(c) + '</span>';
+                applyCellPattern(cells[i], c);
+                if (showNumbers) {
+                    const txt = isLightColor(c) ? "#111" : "#fff";
+                    cells[i].innerHTML =
+                        '<span class="color-num" style="color:' + txt + ';font-size:22px">' +
+                        colorNumber(c) + '</span>';
+                } else {
+                    cells[i].innerHTML = "";
+                }
             } else {
+                cells[i].style.backgroundColor = "#374151";
+                cells[i].style.backgroundImage = "none";
+                cells[i].style.backgroundSize = "";
                 cells[i].innerHTML = "";
             }
         }
@@ -462,7 +556,7 @@ function flyColorsToCollector(rects, colors) {
         tile.style.width = r.width + "px";
         tile.style.height = r.height + "px";
 
-        tile.style.background = color;
+        applyCellPattern(tile, color);
         if (color === WHITE) {
             tile.classList.add("is-joker");
             tile.innerHTML = jokerSvg();
@@ -718,6 +812,58 @@ function updateDiffButtons() {
     });
 }
 
+// ===== TEMA KVADRATIĆA (uzorak) =====
+function setCellTheme(theme, save) {
+    if (theme !== "plain" && theme !== "patterns") theme = "patterns";
+    cellTheme = theme;
+    if (save) {
+        try { localStorage.setItem("blockade_celltheme", theme); } catch (e) {}
+    }
+    updateThemeButtons();
+    // ponovno iscrtaj sve obojano da se uzorak primijeni
+    renderBoard();
+    renderStorage();
+    renderIncoming();
+}
+
+function loadCellTheme() {
+    let t = "patterns";
+    try { t = localStorage.getItem("blockade_celltheme") || "patterns"; } catch (e) {}
+    cellTheme = (t === "plain" || t === "patterns") ? t : "patterns";
+    updateThemeButtons();
+}
+
+function updateThemeButtons() {
+    document.querySelectorAll(".theme-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.theme === cellTheme);
+    });
+}
+
+// ===== BROJEVI NA BOJAMA =====
+function setNumbers(on, save) {
+    showNumbers = !!on;
+    if (save) {
+        try { localStorage.setItem("blockade_numbers", showNumbers ? "1" : "0"); } catch (e) {}
+    }
+    updateNumButtons();
+    renderBoard();
+    renderStorage();
+    renderIncoming();
+}
+
+function loadNumbers() {
+    let v = "1";
+    try { const s = localStorage.getItem("blockade_numbers"); if (s !== null) v = s; } catch (e) {}
+    showNumbers = v !== "0";
+    updateNumButtons();
+}
+
+function updateNumButtons() {
+    document.querySelectorAll(".num-btn").forEach(btn => {
+        btn.classList.toggle("active", (btn.dataset.num === "on") === showNumbers);
+    });
+}
+
 // ===== IZBORNICI =====
 function openScreen(screen) {
     allScreens.forEach(s => s.classList.remove("show"));
@@ -754,17 +900,33 @@ function startGame() {
 }
 
 // ===== POVEZIVANJE GUMBA =====
+let settingsReturn = screenMain;   // ekran na koji se vraća iz Postavki
+
 menuBtn.onclick = () => { if (!gameOver) openScreen(screenPause); };
 
 document.getElementById("btnStart").onclick = startGame;
-document.getElementById("btnSettings").onclick = () => openScreen(screenSettings);
+document.getElementById("btnSettings").onclick = () => { settingsReturn = screenMain; openScreen(screenSettings); };
 document.getElementById("btnHighscore").onclick = () => { updateHighscoreScreen(); openScreen(screenHighscore); };
 
-document.getElementById("btnSettingsBack").onclick = () => openScreen(screenMain);
+document.getElementById("btnSettingsBack").onclick = () => openScreen(settingsReturn);
 document.getElementById("btnHsBack").onclick = () => openScreen(screenMain);
+
+document.getElementById("btnPauseSettings").onclick = () => { settingsReturn = screenPause; openScreen(screenSettings); };
 
 document.querySelectorAll(".diff-btn").forEach(btn => {
     btn.onclick = () => setDifficulty(btn.dataset.diff, true);
+});
+
+document.querySelectorAll(".bg-btn").forEach(btn => {
+    btn.onclick = () => setBackground(btn.dataset.bg, true);
+});
+
+document.querySelectorAll(".theme-btn").forEach(btn => {
+    btn.onclick = () => setCellTheme(btn.dataset.theme, true);
+});
+
+document.querySelectorAll(".num-btn").forEach(btn => {
+    btn.onclick = () => setNumbers(btn.dataset.num === "on", true);
 });
 
 document.getElementById("btnResetHs").onclick = () => {
@@ -804,8 +966,296 @@ document.addEventListener("keydown", (e) => {
 // ===== START =====
 loadHighScore();
 loadDifficulty();
+loadCellTheme();
+loadNumbers();
 createBoard();
 renderBoard();
 renderStorage();
 updateHud();
 openScreen(screenMain);
+
+// ===== POZADINSKA ANIMACIJA (više vrsta: točkice / voda / tamno) =====
+const bgCanvas = document.getElementById("bg");
+const bgCtx = (bgCanvas && bgCanvas.getContext) ? bgCanvas.getContext("2d") : null;
+let bgMode = "dots";          // dots | water | constellation | aurora | warp | grid | none
+let bgW = 0, bgH = 0;
+let bgDots = [];
+let bgNet = [];               // konstelacije
+let bgStars = [];             // zvjezdani warp
+const BG_TRAIL = 45;
+const bgStart = Date.now();
+const BG_MODES = ["dots", "water", "constellation", "aurora", "warp", "grid", "none"];
+
+function bgResize() {
+    if (!bgCanvas) return;
+    bgW = bgCanvas.width = window.innerWidth;
+    bgH = bgCanvas.height = window.innerHeight;
+}
+
+function bgMakeDots() {
+    const count = Math.max(30, Math.round((bgW * bgH) / 22000));
+    bgDots = [];
+    for (let i = 0; i < count; i++) {
+        bgDots.push({
+            x: Math.random() * bgW,
+            y: Math.random() * bgH,
+            r: Math.random() * 1.6 + 0.6,
+            speed: Math.random() * 1.6 + 0.6,
+            trail: []
+        });
+    }
+}
+
+function bgMakeNet() {
+    const count = Math.max(24, Math.min(140, Math.round((bgW * bgH) / 16000)));
+    bgNet = [];
+    for (let i = 0; i < count; i++) {
+        bgNet.push({
+            x: Math.random() * bgW,
+            y: Math.random() * bgH,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: (Math.random() - 0.5) * 0.5
+        });
+    }
+}
+
+function bgMakeStars() {
+    const count = Math.max(120, Math.round((bgW * bgH) / 5000));
+    bgStars = [];
+    for (let i = 0; i < count; i++) {
+        bgStars.push({
+            x: (Math.random() - 0.5) * bgW,
+            y: (Math.random() - 0.5) * bgH,
+            z: Math.random() * bgW
+        });
+    }
+}
+
+function bgInit(mode) {
+    if (mode === "dots") bgMakeDots();
+    else if (mode === "constellation") bgMakeNet();
+    else if (mode === "warp") bgMakeStars();
+}
+
+// bijele točkice s tragom koji nestane
+function bgDrawDots() {
+    bgCtx.clearRect(0, 0, bgW, bgH);
+    for (const d of bgDots) {
+        d.trail.push({ x: d.x, y: d.y });
+        if (d.trail.length > BG_TRAIL) d.trail.shift();
+
+        d.y += d.speed;
+        if (d.y - d.r > bgH) { d.y = -d.r; d.x = Math.random() * bgW; d.trail.length = 0; }
+
+        const len = d.trail.length;
+        for (let i = 0; i < len; i++) {
+            const p = d.trail[i];
+            const t = i / len;
+            bgCtx.fillStyle = "rgba(255, 255, 255, " + (t * 0.45) + ")";
+            bgCtx.beginPath();
+            bgCtx.arc(p.x, p.y, d.r * t, 0, Math.PI * 2);
+            bgCtx.fill();
+        }
+        bgCtx.fillStyle = "rgba(255, 255, 255, 0.9)";
+        bgCtx.beginPath();
+        bgCtx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+        bgCtx.fill();
+    }
+}
+
+// apstraktna voda: crna pozadina + bijele valovite crte koje teku
+function bgDrawWater(t) {
+    bgCtx.fillStyle = "#000";
+    bgCtx.fillRect(0, 0, bgW, bgH);
+    bgCtx.lineWidth = 1.3;
+
+    const lines = 16;
+    for (let i = 0; i < lines; i++) {
+        const baseY = (bgH / (lines + 1)) * (i + 1);
+        const amp = 10 + (i % 4) * 8;
+        const freq = 0.006 + (i % 4) * 0.0016;
+        const phase = t * (0.5 + (i % 3) * 0.22) + i * 0.6;
+
+        bgCtx.strokeStyle = "rgba(255, 255, 255, " + (0.18 + 0.22 * ((i % 3) / 2)) + ")";
+        bgCtx.beginPath();
+        for (let x = 0; x <= bgW; x += 10) {
+            const y = baseY
+                + amp * Math.sin(x * freq + phase)
+                + amp * 0.5 * Math.sin(x * freq * 2.3 + phase * 1.6);
+            if (x === 0) bgCtx.moveTo(x, y);
+            else bgCtx.lineTo(x, y);
+        }
+        bgCtx.stroke();
+    }
+}
+
+// konstelacije: točkice povezane linijama kad su blizu
+function bgDrawConstellation() {
+    bgCtx.clearRect(0, 0, bgW, bgH);
+
+    for (const p of bgNet) {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > bgW) p.vx *= -1;
+        if (p.y < 0 || p.y > bgH) p.vy *= -1;
+    }
+
+    const maxD2 = 120 * 120;
+    bgCtx.lineWidth = 1;
+    for (let i = 0; i < bgNet.length; i++) {
+        for (let j = i + 1; j < bgNet.length; j++) {
+            const a = bgNet[i], b = bgNet[j];
+            const dx = a.x - b.x, dy = a.y - b.y;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < maxD2) {
+                bgCtx.strokeStyle = "rgba(255,255,255," + (1 - d2 / maxD2) * 0.45 + ")";
+                bgCtx.beginPath();
+                bgCtx.moveTo(a.x, a.y);
+                bgCtx.lineTo(b.x, b.y);
+                bgCtx.stroke();
+            }
+        }
+    }
+
+    bgCtx.fillStyle = "rgba(255,255,255,0.8)";
+    for (const p of bgNet) {
+        bgCtx.beginPath();
+        bgCtx.arc(p.x, p.y, 1.6, 0, Math.PI * 2);
+        bgCtx.fill();
+    }
+}
+
+// aurora / plazma: meki obojeni valovi (radijalni sjaj) na crnom
+function bgDrawAurora(t) {
+    bgCtx.fillStyle = "#000";
+    bgCtx.fillRect(0, 0, bgW, bgH);
+
+    const colors = ["34,197,94", "59,130,246", "168,85,247", "6,182,212"];
+    bgCtx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < colors.length; i++) {
+        const cx = bgW * (0.5 + 0.35 * Math.sin(t * 0.15 + i * 1.7));
+        const cy = bgH * (0.5 + 0.30 * Math.cos(t * 0.12 + i * 2.1));
+        const rad = Math.min(bgW, bgH) * (0.45 + 0.1 * Math.sin(t * 0.2 + i));
+        const g = bgCtx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+        g.addColorStop(0, "rgba(" + colors[i] + ",0.40)");
+        g.addColorStop(1, "rgba(" + colors[i] + ",0)");
+        bgCtx.fillStyle = g;
+        bgCtx.fillRect(0, 0, bgW, bgH);
+    }
+    bgCtx.globalCompositeOperation = "source-over";
+}
+
+// zvjezdani warp: zvijezde promiču iz sredine prema rubovima
+function bgDrawWarp() {
+    bgCtx.fillStyle = "#000";
+    bgCtx.fillRect(0, 0, bgW, bgH);
+
+    const cx = bgW / 2, cy = bgH / 2;
+    const focal = bgW * 0.6;
+    const speed = bgW * 0.005;
+    bgCtx.strokeStyle = "#fff";
+    bgCtx.lineCap = "round";
+
+    for (const s of bgStars) {
+        const pz = s.z;
+        s.z -= speed;
+        if (s.z <= 1) {
+            s.x = (Math.random() - 0.5) * bgW;
+            s.y = (Math.random() - 0.5) * bgH;
+            s.z = bgW;
+            continue;
+        }
+        const sx = cx + (s.x / s.z) * focal;
+        const sy = cy + (s.y / s.z) * focal;
+        const px = cx + (s.x / pz) * focal;
+        const py = cy + (s.y / pz) * focal;
+
+        const k = 1 - s.z / bgW;        // 0 daleko, 1 blizu
+        bgCtx.lineWidth = Math.max(0.5, k * 2.2);
+        bgCtx.globalAlpha = Math.min(1, k + 0.2);
+        bgCtx.beginPath();
+        bgCtx.moveTo(px, py);
+        bgCtx.lineTo(sx, sy);
+        bgCtx.stroke();
+    }
+    bgCtx.globalAlpha = 1;
+}
+
+// neonska mreža (synthwave): perspektivna rešetka koja klizi
+function bgDrawGrid(t) {
+    bgCtx.fillStyle = "#000";
+    bgCtx.fillRect(0, 0, bgW, bgH);
+
+    const horizon = bgH * 0.45;
+    const cx = bgW / 2;
+
+    // okomite linije (konvergiraju u horizont)
+    bgCtx.strokeStyle = "rgba(236,72,153,0.6)";
+    bgCtx.lineWidth = 1.5;
+    const cols = 16;
+    for (let i = -cols; i <= cols; i++) {
+        bgCtx.beginPath();
+        bgCtx.moveTo(cx, horizon);
+        bgCtx.lineTo(cx + (i / cols) * bgW, bgH);
+        bgCtx.stroke();
+    }
+
+    // vodoravne linije koje klize prema gledatelju
+    bgCtx.strokeStyle = "rgba(34,211,238,0.6)";
+    const rows = 16;
+    const off = (t * 0.25) % 1;
+    for (let i = 0; i < rows; i++) {
+        const f = (i + off) / rows;
+        const y = horizon + (bgH - horizon) * f * f;
+        bgCtx.beginPath();
+        bgCtx.moveTo(0, y);
+        bgCtx.lineTo(bgW, y);
+        bgCtx.stroke();
+    }
+}
+
+function bgLoop() {
+    if (bgCtx) {
+        const t = (Date.now() - bgStart) / 1000;
+        if (bgMode === "dots") bgDrawDots();
+        else if (bgMode === "water") bgDrawWater(t);
+        else if (bgMode === "constellation") bgDrawConstellation();
+        else if (bgMode === "aurora") bgDrawAurora(t);
+        else if (bgMode === "warp") bgDrawWarp();
+        else if (bgMode === "grid") bgDrawGrid(t);
+        else bgCtx.clearRect(0, 0, bgW, bgH);
+    }
+    requestAnimationFrame(bgLoop);
+}
+
+function updateBgButtons() {
+    document.querySelectorAll(".bg-btn").forEach(b => {
+        b.classList.toggle("active", b.dataset.bg === bgMode);
+    });
+}
+
+function setBackground(mode, save) {
+    if (BG_MODES.indexOf(mode) === -1) mode = "dots";
+    bgMode = mode;
+    if (bgCtx) {
+        bgCtx.clearRect(0, 0, bgW, bgH);
+        bgInit(mode);
+    }
+    // crna podloga za sve animacije, standardna tamna samo za "Tamno"
+    document.body.style.background = (mode === "none") ? "#111827" : "#000";
+    if (save) { try { localStorage.setItem("blockade_bg", mode); } catch (e) {} }
+    updateBgButtons();
+}
+
+function loadBackground() {
+    let m = "dots";
+    try { m = localStorage.getItem("blockade_bg") || "dots"; } catch (e) {}
+    setBackground(m, false);
+}
+
+if (bgCanvas) {
+    bgResize();
+    window.addEventListener("resize", () => { bgResize(); bgInit(bgMode); });
+    loadBackground();
+    bgLoop();
+}
