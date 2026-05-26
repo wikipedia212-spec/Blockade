@@ -34,6 +34,7 @@ let startColors = DIFFICULTIES.normal.startColors;
 let powerChance = DIFFICULTIES.normal.powerChance;
 let cellTheme = "patterns";   // uzorak na kvadratićima: "plain" | "patterns"
 let showNumbers = true;       // prikaz brojeva na bojama (pomoć za daltoniste)
+let gameMode = "classic";     // oblik polja: "classic" (kvadrati) | "hex" (saće)
 
 // Oznaka džokera: outline jokerske kape/glave, okrenut naopačke (rotacija 180°)
 function jokerSvg() {
@@ -356,22 +357,66 @@ function renderStorage() {
 }
 
 // ===== PLOČA =====
+// HEX mod: 6 trokutastih polja (kriški) koja zajedno čine šesterokut
+const HEX_WEDGES = [
+    "polygon(50% 50%, 50% 0%, 100% 25%)",
+    "polygon(50% 50%, 100% 25%, 100% 75%)",
+    "polygon(50% 50%, 100% 75%, 50% 100%)",
+    "polygon(50% 50%, 50% 100%, 0% 75%)",
+    "polygon(50% 50%, 0% 75%, 0% 25%)",
+    "polygon(50% 50%, 0% 25%, 50% 0%)"
+];
+// težišta kriški (udio širine/visine) za broj i let boja u spremnik
+const HEX_CENTROIDS = [
+    [0.667, 0.25], [0.833, 0.5], [0.667, 0.75],
+    [0.333, 0.75], [0.167, 0.5], [0.333, 0.25]
+];
+
+// obris šesterokuta (samo rub, prozirna ispuna) kao pozadinska sličica
+function hexOutlineBg(stroke) {
+    const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'>" +
+        "<polygon points='50,2 98,26 98,74 50,98 2,74 2,26' fill='none' stroke='" + stroke + "' stroke-width='3' stroke-linejoin='round'/></svg>";
+    return "url(\"data:image/svg+xml," + encodeURIComponent(svg) + "\")";
+}
+
+function cellsPerSquare() {
+    return gameMode === "hex" ? 6 : 4;
+}
+
 function createBoard() {
+    boardDiv.innerHTML = "";
+    bigSquares.length = 0;
+
+    const n = cellsPerSquare();
+    const hex = gameMode === "hex";
 
     for (let i = 0; i < 10; i++) {
 
-        const square = { cells: [null, null, null, null] };
+        const square = { cells: new Array(n).fill(null) };
         bigSquares.push(square);
 
         const bigDiv = document.createElement("div");
         bigDiv.className = "big-square";
         square.element = bigDiv;
 
-        for (let j = 0; j < 4; j++) {
+        for (let j = 0; j < n; j++) {
             const cell = document.createElement("div");
             cell.className = "cell";
+            if (hex) {
+                cell.classList.add("wedge");
+                cell.style.clipPath = HEX_WEDGES[j];
+                cell._cx = HEX_CENTROIDS[j][0];
+                cell._cy = HEX_CENTROIDS[j][1];
+            }
             makeDropTarget(cell, () => dropOnCell(square, j));
             bigDiv.appendChild(cell);
+        }
+
+        if (hex) {
+            const outline = document.createElement("div");
+            outline.className = "hex-outline";
+            outline.style.backgroundImage = hexOutlineBg("#94a3b8");
+            bigDiv.appendChild(outline);
         }
 
         boardDiv.appendChild(bigDiv);
@@ -380,33 +425,41 @@ function createBoard() {
     renderBoard();
 }
 
-function renderBoard() {
+// iscrtaj sadržaj jednog polja (boja + uzorak + broj/džoker)
+function renderCell(cell, c) {
+    if (!c) {
+        cell.style.backgroundColor = "#374151";
+        cell.style.backgroundImage = "none";
+        cell.style.backgroundSize = "";
+        cell.innerHTML = "";
+        return;
+    }
 
+    applyCellPattern(cell, c);
+
+    const hex = cell._cx !== undefined;
+    const pos = hex ? ("left:" + (cell._cx * 100) + "%;top:" + (cell._cy * 100) + "%;") : "";
+
+    if (c === WHITE) {
+        cell.innerHTML = hex
+            ? '<span class="wedge-mark" style="' + pos + '">' + jokerSvg() + '</span>'
+            : jokerSvg();
+    } else if (showNumbers) {
+        const txt = isLightColor(c) ? "#111" : "#fff";
+        const fs = hex ? 13 : 22;
+        cell.innerHTML =
+            '<span class="color-num" style="' + pos + "color:" + txt + ";font-size:" + fs + 'px">' +
+            colorNumber(c) + '</span>';
+    } else {
+        cell.innerHTML = "";
+    }
+}
+
+function renderBoard() {
     bigSquares.forEach(square => {
         const cells = square.element.children;
-
-        for (let i = 0; i < 4; i++) {
-            const c = square.cells[i];
-
-            if (c === WHITE) {
-                applyCellPattern(cells[i], WHITE);
-                cells[i].innerHTML = jokerSvg();
-            } else if (c) {
-                applyCellPattern(cells[i], c);
-                if (showNumbers) {
-                    const txt = isLightColor(c) ? "#111" : "#fff";
-                    cells[i].innerHTML =
-                        '<span class="color-num" style="color:' + txt + ';font-size:22px">' +
-                        colorNumber(c) + '</span>';
-                } else {
-                    cells[i].innerHTML = "";
-                }
-            } else {
-                cells[i].style.backgroundColor = "#374151";
-                cells[i].style.backgroundImage = "none";
-                cells[i].style.backgroundSize = "";
-                cells[i].innerHTML = "";
-            }
+        for (let i = 0; i < square.cells.length; i++) {
+            renderCell(cells[i], square.cells[i]);
         }
     });
 }
@@ -520,7 +573,7 @@ function tryApplyPower(square, cellIndex, power) {
         if (target === null) return false;
 
         let changed = false;
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < square.cells.length; i++) {
             if (square.cells[i] === null) { square.cells[i] = target; changed = true; }
         }
         if (!changed) return false;
@@ -540,39 +593,38 @@ function pulse(el) {
     );
 }
 
-// Boje iz popunjenog kvadratića "odlete" u spremnik
-function flyColorsToCollector(rects, colors) {
+// Boje iz popunjenog polja "odlete" u spremnik (points: [{x, y, color}])
+function flyColorsToCollector(points) {
     const box = collectorBox.getBoundingClientRect();
     const targetX = box.left + box.width / 2;
     const targetY = box.top + box.height / 2;
+    const SIZE = 30;
 
-    rects.forEach((r, i) => {
-        const color = colors[i];
-
+    points.forEach((p, i) => {
         const tile = document.createElement("div");
         tile.className = "fly-tile";
-        tile.style.left = r.left + "px";
-        tile.style.top = r.top + "px";
-        tile.style.width = r.width + "px";
-        tile.style.height = r.height + "px";
+        tile.style.left = (p.x - SIZE / 2) + "px";
+        tile.style.top = (p.y - SIZE / 2) + "px";
+        tile.style.width = SIZE + "px";
+        tile.style.height = SIZE + "px";
 
-        applyCellPattern(tile, color);
-        if (color === WHITE) {
+        applyCellPattern(tile, p.color);
+        if (p.color === WHITE) {
             tile.classList.add("is-joker");
             tile.innerHTML = jokerSvg();
         }
 
         document.body.appendChild(tile);
 
-        const dx = targetX - (r.left + r.width / 2);
-        const dy = targetY - (r.top + r.height / 2);
+        const dx = targetX - p.x;
+        const dy = targetY - p.y;
 
         const anim = tile.animate(
             [
                 { transform: "translate(0,0) scale(1)", opacity: 1 },
                 { transform: `translate(${dx}px, ${dy}px) scale(0.25)`, opacity: 0.5 }
             ],
-            { duration: 500, easing: "cubic-bezier(0.5, 0, 0.75, 1)", delay: i * 60, fill: "forwards" }
+            { duration: 500, easing: "cubic-bezier(0.5, 0, 0.75, 1)", delay: i * 50, fill: "forwards" }
         );
 
         anim.onfinish = () => {
@@ -617,7 +669,7 @@ function checkCompleted(square) {
         completedThisDrop = true;
         combo++;
         const bonus = combo >= 2 ? 4 * Math.pow(2, combo - 2) : 0;
-        score += 4 + bonus;
+        score += square.cells.length + bonus;   // 1 bod po polju (4 klasično, 6 hex)
         scoreDiv.textContent = score;
         pulse(scoreDiv);
 
@@ -632,18 +684,27 @@ function checkCompleted(square) {
         }
         updateHud();
 
-        // zapamti pozicije i boje polja, pa ih "pošalji" u spremnik
+        // zapamti polazne točke (centar polja) i boje, pa ih "pošalji" u spremnik
         const cells = square.element.children;
-        const rects = [];
-        const colors = [];
-        for (let i = 0; i < 4; i++) {
-            rects.push(cells[i].getBoundingClientRect());
-            colors.push(square.cells[i]);
+        const boxRect = square.element.getBoundingClientRect();
+        const points = [];
+        for (let i = 0; i < square.cells.length; i++) {
+            const cell = cells[i];
+            let x, y;
+            if (cell._cx !== undefined) {            // HEX: težište kriške
+                x = boxRect.left + cell._cx * boxRect.width;
+                y = boxRect.top + cell._cy * boxRect.height;
+            } else {                                  // klasično: centar polja
+                const cr = cell.getBoundingClientRect();
+                x = cr.left + cr.width / 2;
+                y = cr.top + cr.height / 2;
+            }
+            points.push({ x: x, y: y, color: square.cells[i] });
         }
 
-        // boje su odletjele -> kvadratić se odmah oslobađa
-        square.cells = [null, null, null, null];
-        flyColorsToCollector(rects, colors);
+        // boje su odletjele -> polje se odmah oslobađa
+        square.cells = new Array(square.cells.length).fill(null);
+        flyColorsToCollector(points);
     }
 }
 
@@ -864,6 +925,33 @@ function updateNumButtons() {
     });
 }
 
+// ===== GAME MOD (oblik polja) =====
+function setGameMode(mode, save) {
+    if (mode !== "classic" && mode !== "hex") mode = "classic";
+    gameMode = mode;
+    boardDiv.classList.toggle("hex", mode === "hex");
+    createBoard();   // ponovo izgradi ploču (4 ili 6 polja po kvadratu)
+    if (save) {
+        try { localStorage.setItem("blockade_mode", mode); } catch (e) {}
+    }
+    updateModeButtons();
+}
+
+// samo postavi mod (bez ponovne izgradnje) — ploču gradi START nakon ovoga
+function loadGameMode() {
+    let m = "classic";
+    try { m = localStorage.getItem("blockade_mode") || "classic"; } catch (e) {}
+    gameMode = (m === "hex") ? "hex" : "classic";
+    boardDiv.classList.toggle("hex", gameMode === "hex");
+    updateModeButtons();
+}
+
+function updateModeButtons() {
+    document.querySelectorAll(".mode-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.mode === gameMode);
+    });
+}
+
 // ===== IZBORNICI =====
 function openScreen(screen) {
     allScreens.forEach(s => s.classList.remove("show"));
@@ -888,7 +976,7 @@ function startGame() {
     completedThisDrop = false;
     rebuildActiveColors();
     storage = [null, null, null, null, null];
-    bigSquares.forEach(sq => sq.cells = [null, null, null, null]);
+    bigSquares.forEach(sq => sq.cells = new Array(sq.cells.length).fill(null));
     dragSource = null;
     gameOver = false;
 
@@ -929,6 +1017,10 @@ document.querySelectorAll(".num-btn").forEach(btn => {
     btn.onclick = () => setNumbers(btn.dataset.num === "on", true);
 });
 
+document.querySelectorAll(".mode-btn").forEach(btn => {
+    btn.onclick = () => setGameMode(btn.dataset.mode, true);
+});
+
 document.getElementById("btnResetHs").onclick = () => {
     leaderboard = [];
     saveLeaderboard();
@@ -963,11 +1055,42 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
+// ===== ZVUK KLIKA (generiran, bez vanjske datoteke) =====
+let audioCtx = null;
+function playClick() {
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+
+        const t = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(660, t);
+        osc.frequency.exponentialRampToValueAtTime(440, t + 0.05);
+
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.18, t + 0.005);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.09);
+    } catch (e) { /* zvuk nedostupan */ }
+}
+
+// klik zvuk na svaki gumb (i buduće)
+document.addEventListener("click", (e) => {
+    if (e.target.closest && e.target.closest("button")) playClick();
+}, true);
+
 // ===== START =====
 loadHighScore();
 loadDifficulty();
 loadCellTheme();
 loadNumbers();
+loadGameMode();
 createBoard();
 renderBoard();
 renderStorage();

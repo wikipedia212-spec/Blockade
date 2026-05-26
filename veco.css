@@ -173,6 +173,65 @@ h3 {
     gap: 5px;
 }
 
+/* ===== HEX (šesterokuti, 6 kriški) ===== */
+.board.hex {
+    row-gap: 0;
+    column-gap: 10px;
+}
+
+.board.hex .big-square {
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    display: block;
+    position: relative;
+    background: transparent;
+}
+
+/* kriške: trokuti koji zajedno čine šesterokut */
+.board.hex .cell {
+    position: absolute;
+    inset: 0;
+    border-radius: 0;
+}
+
+/* obris šesterokuta (iznad kriški, ne hvata klik) */
+.hex-outline {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+
+/* broj / džoker postavljeni u težište kriške */
+.cell.wedge .color-num,
+.cell.wedge .wedge-mark {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    line-height: 1;
+}
+
+.cell.wedge .wedge-mark {
+    width: 18px;
+    height: 18px;
+}
+
+.cell.wedge .wedge-mark .joker-mark {
+    width: 100%;
+    height: 100%;
+}
+
+/* gornji red lagano lijevo, donji red desno + povučen gore = saće raspored */
+.board.hex .big-square:nth-child(-n + 5) {
+    transform: translateX(-32px);
+}
+
+.board.hex .big-square:nth-child(n + 6) {
+    transform: translateX(33px);
+    margin-top: -30px;
+}
+
 .cell {
     background: #374151;
     border-radius: 6px;
@@ -348,7 +407,35 @@ h3 {
 
 .overlay-box .menu-title {
     font-size: 46px;
-    margin-bottom: 22px;
+    margin-bottom: 16px;
+}
+
+/* prekidač načina igre (glavni izbornik) */
+.mode-label {
+    margin: 0 0 6px;
+    font-size: 14px;
+}
+
+.mode-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 0 0 18px;
+}
+
+.mode-row .mode-btn {
+    width: auto;
+    flex: 1;
+    margin: 0;
+    padding: 10px 8px;
+    font-size: 15px;
+    background: #374151;
+    color: #fff;
+}
+
+.mode-row .mode-btn.active {
+    background: #22c55e;
+    color: #111;
 }
 
 .overlay-box p {
