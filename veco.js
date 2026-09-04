@@ -109,12 +109,14 @@ const restartBtn = document.getElementById("restartBtn");
 
 // Izbornici
 const menuBtn = document.getElementById("menuBtn");
+const helpBtn = document.getElementById("helpBtn");
 const screenMain = document.getElementById("screen-main");
 const screenSettings = document.getElementById("screen-settings");
 const screenHighscore = document.getElementById("screen-highscore");
 const screenPause = document.getElementById("screen-pause");
+const screenLegend = document.getElementById("screen-legend");
 const hsListDiv = document.getElementById("hsList");
-const allScreens = [screenMain, screenSettings, screenHighscore, screenPause, overlay];
+const allScreens = [screenMain, screenSettings, screenHighscore, screenPause, screenLegend, overlay];
 
 // ===== NIVOI =====
 // Nivo 1 traži 10 popunjenih kvadratića, svaki sljedeći +1.
@@ -372,10 +374,13 @@ const HEX_CENTROIDS = [
     [0.333, 0.75], [0.167, 0.5], [0.333, 0.25]
 ];
 
-// obris šesterokuta (samo rub, prozirna ispuna) kao pozadinska sličica
+// obris šesterokuta + linije koje razdvajaju 6 kriški (od centra do svakog vrha)
 function hexOutlineBg(stroke) {
     const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'>" +
-        "<polygon points='50,2 98,26 98,74 50,98 2,74 2,26' fill='none' stroke='" + stroke + "' stroke-width='3' stroke-linejoin='round'/></svg>";
+        "<g fill='none' stroke='" + stroke + "' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'>" +
+            "<polygon points='50,2 98,26 98,74 50,98 2,74 2,26'/>" +
+            "<path d='M50 50 L50 2 M50 50 L98 26 M50 50 L98 74 M50 50 L50 98 M50 50 L2 74 M50 50 L2 26'/>" +
+        "</g></svg>";
     return "url(\"data:image/svg+xml," + encodeURIComponent(svg) + "\")";
 }
 
@@ -446,7 +451,7 @@ function renderCell(cell, c) {
             : jokerSvg();
     } else if (showNumbers) {
         const txt = isLightColor(c) ? "#111" : "#fff";
-        const fs = hex ? 13 : 22;
+        const fs = hex ? 16 : 22;
         cell.innerHTML =
             '<span class="color-num" style="' + pos + "color:" + txt + ";font-size:" + fs + 'px">' +
             colorNumber(c) + '</span>';
@@ -681,6 +686,7 @@ function checkCompleted(square) {
             completedThisLevel = 0;
             rebuildActiveColors();
             showLevelUp();
+            cycleBackground();   // svaki nivo -> nova pozadina
         }
         updateHud();
 
@@ -956,12 +962,15 @@ function updateModeButtons() {
 function openScreen(screen) {
     allScreens.forEach(s => s.classList.remove("show"));
     if (screen) screen.classList.add("show");
-    menuBtn.style.display = screen ? "none" : "";
+    const hide = screen ? "none" : "";
+    menuBtn.style.display = hide;
+    helpBtn.style.display = hide;
 }
 
 function closeToGame() {
     allScreens.forEach(s => s.classList.remove("show"));
     menuBtn.style.display = "";
+    helpBtn.style.display = "";
 }
 
 // ===== POKRETANJE / RESET IGRE =====
@@ -984,6 +993,7 @@ function startGame() {
     renderBoard();
     renderStorage();
     generateNext();
+    if (typeof loadBackground === "function") loadBackground();  // vrati na spremljeni izbor
     closeToGame();
 }
 
@@ -991,6 +1001,8 @@ function startGame() {
 let settingsReturn = screenMain;   // ekran na koji se vraća iz Postavki
 
 menuBtn.onclick = () => { if (!gameOver) openScreen(screenPause); };
+helpBtn.onclick = () => { if (!gameOver) openScreen(screenLegend); };
+document.getElementById("btnLegendBack").onclick = closeToGame;
 
 document.getElementById("btnStart").onclick = startGame;
 document.getElementById("btnSettings").onclick = () => { settingsReturn = screenMain; openScreen(screenSettings); };
@@ -1108,6 +1120,8 @@ let bgStars = [];             // zvjezdani warp
 const BG_TRAIL = 45;
 const bgStart = Date.now();
 const BG_MODES = ["dots", "water", "constellation", "aurora", "warp", "grid", "none"];
+// redoslijed kroz koji pozadina rotira na svaki novi nivo
+const BG_CYCLE = ["dots", "water", "constellation", "aurora", "warp", "grid"];
 
 function bgResize() {
     if (!bgCanvas) return;
@@ -1374,6 +1388,14 @@ function loadBackground() {
     let m = "dots";
     try { m = localStorage.getItem("blockade_bg") || "dots"; } catch (e) {}
     setBackground(m, false);
+}
+
+// Prebaci pozadinu na sljedeću u ciklusu (koristi se pri prelasku na novi nivo).
+// Ne sprema u localStorage - korisnikova postavka ostaje netaknuta.
+function cycleBackground() {
+    const idx = BG_CYCLE.indexOf(bgMode);
+    const next = BG_CYCLE[(idx + 1 + BG_CYCLE.length) % BG_CYCLE.length];
+    setBackground(next, false);
 }
 
 if (bgCanvas) {

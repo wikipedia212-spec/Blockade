@@ -38,20 +38,13 @@
 
     <div class="board" id="board"></div>
 
-    <!-- desni panel: opisi moći (uravnotežuje lijevi panel -> ploča je na sredini) -->
-    <div class="right-panel">
-        <div class="legend">
-            <h3>Dijamanti (moći)</h3>
-            <div class="legend-item"><span class="leg-tri power-white"><svg class="drop-mark" width="12" height="12" viewBox="0 0 24 25" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.5 C 14 8 19 12 19 15.5 A 7 7 0 0 1 5 15.5 C 5 12 10 8 12 2.5 Z" fill="none" stroke="#111827" stroke-width="2.2" stroke-linejoin="round"/></svg></span> Pretvori jedno polje u džoker (bijelo, paše uz sve)</div>
-            <div class="legend-item"><span class="leg-tri power-add">+</span> Dodaj boju koja fali (1 polje)</div>
-            <div class="legend-item"><span class="leg-tri power-remove">–</span> Ukloni jednu boju iz kvadrata</div>
-            <div class="legend-item"><span class="leg-tri power-fill">★</span> Napuni cijeli kvadrat bojom</div>
-        </div>
-    </div>
+    <!-- desni panel (prazan) - uravnotežuje lijevi panel da je ploča na sredini -->
+    <div class="right-panel"></div>
 
 </div>
 
-<!-- Gumb izbornika tijekom igre -->
+<!-- Gumb pomoći (legenda moći) i izbornika tijekom igre -->
+<button class="help-btn" id="helpBtn" title="Legenda moći">?</button>
 <button class="menu-btn" id="menuBtn" title="Izbornik (Esc)">☰</button>
 
 <!-- Glavni izbornik -->
@@ -110,6 +103,20 @@
         <h2>High score</h2>
         <div class="hs-list" id="hsList"></div>
         <button id="btnHsBack">Natrag</button>
+    </div>
+</div>
+
+<!-- Legenda moći (usred igre, ? gumb) -->
+<div class="overlay" id="screen-legend">
+    <div class="overlay-box">
+        <h2>Dijamanti (moći)</h2>
+        <div class="legend legend-in-overlay">
+            <div class="legend-item"><span class="leg-tri power-white"><svg class="drop-mark" width="12" height="12" viewBox="0 0 24 25" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.5 C 14 8 19 12 19 15.5 A 7 7 0 0 1 5 15.5 C 5 12 10 8 12 2.5 Z" fill="none" stroke="#111827" stroke-width="2.2" stroke-linejoin="round"/></svg></span> Pretvori jedno polje u džoker (bijelo, paše uz sve)</div>
+            <div class="legend-item"><span class="leg-tri power-add">+</span> Dodaj boju koja fali (1 polje)</div>
+            <div class="legend-item"><span class="leg-tri power-remove">–</span> Ukloni jednu boju iz kvadrata</div>
+            <div class="legend-item"><span class="leg-tri power-fill">★</span> Napuni cijeli kvadrat bojom</div>
+        </div>
+        <button id="btnLegendBack">Natrag</button>
     </div>
 </div>
 

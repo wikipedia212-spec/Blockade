@@ -175,11 +175,14 @@ h3 {
 
 /* ===== HEX (šesterokuti, 6 kriški) ===== */
 .board.hex {
+    grid-template-columns: repeat(5, 150px);
     row-gap: 0;
     column-gap: 10px;
 }
 
 .board.hex .big-square {
+    width: 150px;
+    height: 150px;
     border: none;
     border-radius: 0;
     padding: 0;
@@ -213,8 +216,8 @@ h3 {
 }
 
 .cell.wedge .wedge-mark {
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
 }
 
 .cell.wedge .wedge-mark .joker-mark {
@@ -224,12 +227,12 @@ h3 {
 
 /* gornji red lagano lijevo, donji red desno + povučen gore = saće raspored */
 .board.hex .big-square:nth-child(-n + 5) {
-    transform: translateX(-32px);
+    transform: translateX(-40px);
 }
 
 .board.hex .big-square:nth-child(n + 6) {
-    transform: translateX(33px);
-    margin-top: -30px;
+    transform: translateX(40px);
+    margin-top: -37px;
 }
 
 .cell {
@@ -687,7 +690,34 @@ h3 {
     transition: transform 0.15s, background 0.15s;
 }
 
-.menu-btn:hover {
+.menu-btn:hover,
+.help-btn:hover {
     background: #374151;
     transform: scale(1.05);
+}
+
+/* ? gumb (legenda moći), pokraj gumba za izbornik */
+.help-btn {
+    position: fixed;
+    top: 16px;
+    right: 68px;
+    z-index: 5;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 10px;
+    background: #1f2937;
+    color: #fff;
+    font-size: 22px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+}
+
+/* legenda kad je unutar overlaya (na "?" gumb) — poravnata lijevo, veće ikone */
+.legend-in-overlay {
+    text-align: left;
+    margin: 6px 0 20px;
+    font-size: 14px;
+    min-width: 260px;
 }
