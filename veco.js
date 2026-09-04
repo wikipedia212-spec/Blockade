@@ -73,7 +73,6 @@ let gameOver = false;
 
 let level = 1;
 let completedThisLevel = 0;
-let collectedCount = 0;    // koliko je boja skupljeno u spremnik
 let combo = 0;             // koliko je kvadrata zatvoreno zaredom
 let completedThisDrop = false; // je li trenutni potez na ploču zatvorio kvadrat
 let activeColors = [];     // prave boje aktivne na ovom nivou + bijeli džoker
@@ -98,7 +97,7 @@ const levelSpan = document.getElementById("level");
 const progressSpan = document.getElementById("progress");
 const targetSpan = document.getElementById("target");
 const collectorBox = document.getElementById("collector");
-const collectedSpan = document.getElementById("collected");
+const remainingSpan = document.getElementById("remaining");
 const overlay = document.getElementById("overlay");
 const finalScoreSpan = document.getElementById("finalScore");
 const finalLevelSpan = document.getElementById("finalLevel");
@@ -133,7 +132,9 @@ function rebuildActiveColors() {
 function updateHud() {
     levelSpan.textContent = level;
     progressSpan.textContent = completedThisLevel;
-    targetSpan.textContent = targetForLevel(level);
+    const t = targetForLevel(level);
+    targetSpan.textContent = t;
+    remainingSpan.textContent = Math.max(0, t - completedThisLevel);
 }
 
 // ===== GENERIRANJE NOVOG PREDMETA =====
@@ -598,7 +599,7 @@ function pulse(el) {
     );
 }
 
-// Boje iz popunjenog polja "odlete" u spremnik (points: [{x, y, color}])
+// Boje iz popunjenog polja "odlete" u kutiju za preostale kvadrate
 function flyColorsToCollector(points) {
     const box = collectorBox.getBoundingClientRect();
     const targetX = box.left + box.width / 2;
@@ -634,8 +635,6 @@ function flyColorsToCollector(points) {
 
         anim.onfinish = () => {
             tile.remove();
-            collectedCount++;
-            collectedSpan.textContent = collectedCount;
             pulse(collectorBox);
         };
     });
@@ -654,7 +653,7 @@ function showCombo(comboCount, bonus) {
 function showLevelUp() {
     const banner = document.createElement("div");
     banner.className = "level-up";
-    banner.textContent = "Nivo " + level + "!";
+    banner.textContent = "Level " + level + "!";
     document.body.appendChild(banner);
     banner.addEventListener("animationend", () => banner.remove());
 }
@@ -690,7 +689,7 @@ function checkCompleted(square) {
         }
         updateHud();
 
-        // zapamti polazne točke (centar polja) i boje, pa ih "pošalji" u spremnik
+        // zapamti polazne točke (centar polja) i boje pa ih pošalji u kutiju
         const cells = square.element.children;
         const boxRect = square.element.getBoundingClientRect();
         const points = [];
@@ -708,7 +707,7 @@ function checkCompleted(square) {
             points.push({ x: x, y: y, color: square.cells[i] });
         }
 
-        // boje su odletjele -> polje se odmah oslobađa
+        // polje se oslobađa odmah nakon bodovanja
         square.cells = new Array(square.cells.length).fill(null);
         flyColorsToCollector(points);
     }
@@ -776,7 +775,7 @@ function showGameOver() {
 
     if (currentEntry) {
         const rank = leaderboard.indexOf(currentEntry) + 1;
-        newRecordP.textContent = rank === 1 ? "Novi rekord! 🎉" : ("Ušao si u top 5! (" + rank + ".)");
+        newRecordP.textContent = rank === 1 ? "New record! 🎉" : ("You made top 5! (" + rank + ")");
         newRecordP.style.display = "";
     } else {
         newRecordP.style.display = "none";
@@ -838,7 +837,7 @@ function escapeHtml(s) {
 
 function updateHighscoreScreen() {
     if (leaderboard.length === 0) {
-        hsListDiv.innerHTML = '<p class="hs-empty">Još nema rezultata.</p>';
+        hsListDiv.innerHTML = '<p class="hs-empty">No scores yet.</p>';
         return;
     }
     let html = "";
@@ -849,7 +848,7 @@ function updateHighscoreScreen() {
                 '<span class="hs-rank">' + (i + 1) + '.</span>' +
                 '<span class="hs-pname">' + nm + '</span>' +
                 '<span class="hs-pscore">' + e.score + '</span>' +
-                '<span class="hs-plevel">niv ' + e.level + '</span>' +
+                '<span class="hs-plevel">lvl ' + e.level + '</span>' +
             '</div>';
     });
     hsListDiv.innerHTML = html;
@@ -979,8 +978,6 @@ function startGame() {
     scoreDiv.textContent = "0";
     level = 1;
     completedThisLevel = 0;
-    collectedCount = 0;
-    collectedSpan.textContent = "0";
     combo = 0;
     completedThisDrop = false;
     rebuildActiveColors();
@@ -1046,8 +1043,8 @@ nameInput.addEventListener("keydown", (e) => {
 });
 btnSaveName.onclick = () => {
     applyName();
-    btnSaveName.textContent = "Spremljeno ✓";
-    setTimeout(() => { btnSaveName.textContent = "Spremi"; }, 1200);
+    btnSaveName.textContent = "Saved ✓";
+    setTimeout(() => { btnSaveName.textContent = "Save"; }, 1200);
 };
 
 document.getElementById("btnResume").onclick = closeToGame;

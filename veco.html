@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="hr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,21 +17,22 @@
 
         <h1>Blockade</h1>
 
-        <h3>Dolazi</h3>
+        <h3>Next</h3>
         <div class="incoming" id="incoming"></div>
 
-        <h3>Spremište</h3>
+        <h3>Storage</h3>
         <div class="storage" id="storage"></div>
 
         <div class="info">
-            Nivo: <span id="level">1</span><br>
-            Kvadratići: <span id="progress">0</span> / <span id="target">10</span><br>
+            Level: <span id="level">1</span><br>
+            Cleared: <span id="progress">0</span> / <span id="target">10</span><br>
             Score: <span id="score">0</span>
         </div>
 
-        <h3>Spremnik</h3>
+        <h3>To next level</h3>
         <div class="collector" id="collector">
-            <span id="collected">0</span>
+            <span id="remaining">10</span>
+            <span class="collector-sub">left</span>
         </div>
 
     </div>
@@ -43,21 +44,21 @@
 
 </div>
 
-<!-- Gumb pomoći (legenda moći) i izbornika tijekom igre -->
-<button class="help-btn" id="helpBtn" title="Legenda moći">?</button>
-<button class="menu-btn" id="menuBtn" title="Izbornik (Esc)">☰</button>
+<!-- Help button (powers legend) and menu button, shown during play -->
+<button class="help-btn" id="helpBtn" title="Powers legend">?</button>
+<button class="menu-btn" id="menuBtn" title="Menu (Esc)">☰</button>
 
 <!-- Glavni izbornik -->
 <div class="overlay" id="screen-main">
     <div class="overlay-box">
         <h2 class="menu-title">Blockade</h2>
-        <p class="mode-label">Način igre:</p>
+        <p class="mode-label">Game mode:</p>
         <div class="mode-row">
-            <button class="mode-btn" data-mode="classic">Klasično</button>
+            <button class="mode-btn" data-mode="classic">Classic</button>
             <button class="mode-btn" data-mode="hex">HEX</button>
         </div>
         <button id="btnStart">Start</button>
-        <button id="btnSettings">Postavke</button>
+        <button id="btnSettings">Settings</button>
         <button id="btnHighscore">High score</button>
     </div>
 </div>
@@ -65,35 +66,35 @@
 <!-- Postavke -->
 <div class="overlay" id="screen-settings">
     <div class="overlay-box">
-        <h2>Postavke</h2>
-        <p>Težina:</p>
+        <h2>Settings</h2>
+        <p>Difficulty:</p>
         <div class="diff-row">
-            <button class="diff-btn" data-diff="easy">Lako</button>
-            <button class="diff-btn" data-diff="normal">Normalno</button>
-            <button class="diff-btn" data-diff="hard">Teško</button>
+            <button class="diff-btn" data-diff="easy">Easy</button>
+            <button class="diff-btn" data-diff="normal">Normal</button>
+            <button class="diff-btn" data-diff="hard">Hard</button>
         </div>
-        <p>Pozadina:</p>
+        <p>Background:</p>
         <div class="bg-row">
-            <button class="bg-btn" data-bg="dots">Točkice</button>
-            <button class="bg-btn" data-bg="water">Voda</button>
-            <button class="bg-btn" data-bg="constellation">Mreža</button>
+            <button class="bg-btn" data-bg="dots">Dots</button>
+            <button class="bg-btn" data-bg="water">Water</button>
+            <button class="bg-btn" data-bg="constellation">Network</button>
             <button class="bg-btn" data-bg="aurora">Aurora</button>
             <button class="bg-btn" data-bg="warp">Warp</button>
             <button class="bg-btn" data-bg="grid">Neon</button>
-            <button class="bg-btn" data-bg="none">Tamno</button>
+            <button class="bg-btn" data-bg="none">Plain</button>
         </div>
-        <p>Kvadratići (uzorak):</p>
+        <p>Fields (pattern):</p>
         <div class="theme-row">
-            <button class="theme-btn" data-theme="patterns">Uzorci</button>
-            <button class="theme-btn" data-theme="plain">Glatko</button>
+            <button class="theme-btn" data-theme="patterns">Patterns</button>
+            <button class="theme-btn" data-theme="plain">Plain</button>
         </div>
-        <p>Brojevi na bojama:</p>
+        <p>Numbers on colors:</p>
         <div class="num-row">
-            <button class="num-btn" data-num="on">Uključeno</button>
-            <button class="num-btn" data-num="off">Isključeno</button>
+            <button class="num-btn" data-num="on">On</button>
+            <button class="num-btn" data-num="off">Off</button>
         </div>
-        <button id="btnResetHs" class="btn-secondary">Resetiraj high score</button>
-        <button id="btnSettingsBack">Natrag</button>
+        <button id="btnResetHs" class="btn-secondary">Reset high score</button>
+        <button id="btnSettingsBack">Back</button>
     </div>
 </div>
 
@@ -102,32 +103,32 @@
     <div class="overlay-box">
         <h2>High score</h2>
         <div class="hs-list" id="hsList"></div>
-        <button id="btnHsBack">Natrag</button>
+        <button id="btnHsBack">Back</button>
     </div>
 </div>
 
-<!-- Legenda moći (usred igre, ? gumb) -->
+<!-- Powers legend (in-game, ? button) -->
 <div class="overlay" id="screen-legend">
     <div class="overlay-box">
-        <h2>Dijamanti (moći)</h2>
+        <h2>Diamonds (powers)</h2>
         <div class="legend legend-in-overlay">
-            <div class="legend-item"><span class="leg-tri power-white"><svg class="drop-mark" width="12" height="12" viewBox="0 0 24 25" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.5 C 14 8 19 12 19 15.5 A 7 7 0 0 1 5 15.5 C 5 12 10 8 12 2.5 Z" fill="none" stroke="#111827" stroke-width="2.2" stroke-linejoin="round"/></svg></span> Pretvori jedno polje u džoker (bijelo, paše uz sve)</div>
-            <div class="legend-item"><span class="leg-tri power-add">+</span> Dodaj boju koja fali (1 polje)</div>
-            <div class="legend-item"><span class="leg-tri power-remove">–</span> Ukloni jednu boju iz kvadrata</div>
-            <div class="legend-item"><span class="leg-tri power-fill">★</span> Napuni cijeli kvadrat bojom</div>
+            <div class="legend-item"><span class="leg-tri power-white"><svg class="drop-mark" width="12" height="12" viewBox="0 0 24 25" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.5 C 14 8 19 12 19 15.5 A 7 7 0 0 1 5 15.5 C 5 12 10 8 12 2.5 Z" fill="none" stroke="#111827" stroke-width="2.2" stroke-linejoin="round"/></svg></span> Turn a field into a joker (white, matches anything)</div>
+            <div class="legend-item"><span class="leg-tri power-add">+</span> Add the missing color (1 field)</div>
+            <div class="legend-item"><span class="leg-tri power-remove">–</span> Remove one color from a field</div>
+            <div class="legend-item"><span class="leg-tri power-fill">★</span> Fill the whole square with color</div>
         </div>
-        <button id="btnLegendBack">Natrag</button>
+        <button id="btnLegendBack">Back</button>
     </div>
 </div>
 
-<!-- Pauza (usred igre) -->
+<!-- Pause (in-game) -->
 <div class="overlay" id="screen-pause">
     <div class="overlay-box">
-        <h2>Pauza</h2>
-        <button id="btnResume">Nastavi</button>
-        <button id="btnPauseSettings">Postavke</button>
+        <h2>Pause</h2>
+        <button id="btnResume">Resume</button>
+        <button id="btnPauseSettings">Settings</button>
         <button id="btnPauseRestart">Restart</button>
-        <button id="btnPauseMain">Glavni izbornik</button>
+        <button id="btnPauseMain">Main menu</button>
     </div>
 </div>
 
@@ -135,19 +136,19 @@
 <div class="overlay" id="overlay">
     <div class="overlay-box">
         <h2 class="gameover-title">Game Over</h2>
-        <p>Nema više poteza.</p>
-        <p class="final-score">Rezultat: <span id="finalScore">0</span></p>
-        <p class="final-level">Dosegnuti nivo: <span id="finalLevel">1</span></p>
-        <p class="new-record" id="newRecord">Novi rekord! 🎉</p>
+        <p>No more moves.</p>
+        <p class="final-score">Score: <span id="finalScore">0</span></p>
+        <p class="final-level">Level reached: <span id="finalLevel">1</span></p>
+        <p class="new-record" id="newRecord">New record! 🎉</p>
         <div class="name-entry">
-            <label for="nameInput">Tvoje ime:</label>
+            <label for="nameInput">Your name:</label>
             <div class="name-row">
-                <input type="text" id="nameInput" maxlength="12" placeholder="Ime">
-                <button id="btnSaveName">Spremi</button>
+                <input type="text" id="nameInput" maxlength="12" placeholder="Name">
+                <button id="btnSaveName">Save</button>
             </div>
         </div>
-        <button id="restartBtn">Igraj ponovno</button>
-        <button id="btnGoMain">Glavni izbornik</button>
+        <button id="restartBtn">Play again</button>
+        <button id="btnGoMain">Main menu</button>
     </div>
 </div>
 
