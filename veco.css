@@ -56,9 +56,10 @@ h3 {
 /* ===== Spremište ===== */
 .storage {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(3, 1fr);   /* 6 slotova u 2 reda po 3 */
     gap: 10px;
     margin-top: 15px;
+    justify-items: center;
 }
 
 .slot {
@@ -156,8 +157,8 @@ h3 {
 .board {
     display: grid;
     grid-template-columns: repeat(5, 120px);
-    /* row-gap column-gap: manji razmak gore-dolje, isti lijevo-desno */
-    gap: 2px 15px;
+    /* row-gap column-gap: razmak između redova / stupaca */
+    gap: 60px 15px;
 }
 
 .big-square {
@@ -443,8 +444,8 @@ h3 {
     width: auto;
     flex: 1;
     margin: 0;
-    padding: 10px 8px;
-    font-size: 15px;
+    padding: 10px 4px;
+    font-size: 14px;
     background: #374151;
     color: #fff;
 }
@@ -587,6 +588,29 @@ h3 {
     color: #111;
 }
 
+/* gumbi za uključivanje/isključivanje glazbe */
+.music-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 6px 0 18px;
+}
+
+.music-row .music-btn {
+    width: auto;
+    flex: 1;
+    margin: 0;
+    padding: 10px 4px;
+    font-size: 14px;
+    background: #374151;
+    color: #fff;
+}
+
+.music-row .music-btn.active {
+    background: #22c55e;
+    color: #111;
+}
+
 /* novi rekord na Game Over ekranu */
 .overlay-box .new-record {
     color: #fbbf24;
@@ -635,7 +659,94 @@ h3 {
     flex: 0 0 auto;
 }
 
-/* ===== Ljestvica (top 5) ===== */
+/* ===== Ljestvica: tabovi (Score / Time Race) ===== */
+.hs-tabs {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 0 0 12px;
+}
+
+.hs-tabs .hs-tab {
+    width: auto;
+    flex: 1;
+    margin: 0;
+    padding: 8px 6px;
+    font-size: 14px;
+    background: #374151;
+    color: #fff;
+}
+
+.hs-tabs .hs-tab.active {
+    background: #22c55e;
+    color: #111;
+}
+
+/* ===== Time Race HUD (ispod donjeg reda kvadrata) ===== */
+.board-wrap {
+    position: relative;
+}
+
+/* dodatni prostor ispod ploče samo u Time Race modu (za tajmer) */
+.board-wrap:has(> .board.time-race) {
+    padding-bottom: 60px;
+}
+
+.race-hud {
+    position: absolute;
+    left: 50%;
+    bottom: 8px;
+    transform: translate(-50%, 0);
+    padding: 6px 18px;
+    border-radius: 12px;
+    background: rgba(17, 24, 39, 0.85);
+    border: 2px solid #555;
+    font-size: 28px;
+    color: #fbbf24;
+    font-weight: bold;
+    letter-spacing: 1px;
+    pointer-events: none;
+    z-index: 4;
+    white-space: nowrap;
+}
+
+/* pulsirajuće crveno upozorenje kad vrijeme istječe (<10s) */
+.race-hud .race-low {
+    color: #ef4444;
+    animation: raceLowPulse 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes raceLowPulse {
+    from { opacity: 0.55; }
+    to   { opacity: 1; }
+}
+
+/* mali "+20s" bljesak iznad tajmera kad se zatvori kvadrat */
+.time-bonus-pop {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translate(-50%, 0);
+    color: #22c55e;
+    font-size: 16px;
+    font-weight: bold;
+    pointer-events: none;
+    animation: timeBonusRise 0.9s ease-out forwards;
+}
+
+@keyframes timeBonusRise {
+    0%   { opacity: 0; transform: translate(-50%, 4px); }
+    20%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -22px); }
+}
+
+.overlay-box .final-time {
+    font-size: 22px;
+    color: #fbbf24;
+    margin: 14px 0 4px;
+}
+
+/* ===== Ljestvica ===== */
 .hs-list {
     margin: 6px 0 20px;
     min-width: 260px;
@@ -664,7 +775,23 @@ h3 {
 .hs-pname {
     flex: 1;
     text-align: left;
+    min-width: 0;
+}
+
+.hs-pname .hs-name-main {
     font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.15;
+}
+
+.hs-pname .hs-meta {
+    font-size: 11px;
+    color: #9ca3af;
+    line-height: 1.15;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

@@ -25,15 +25,16 @@ const WHITE = "#ffffff";
 
 // Postavke težine: koliko je boja aktivno na 1. nivou + šansa za moći
 const DIFFICULTIES = {
-    easy:   { startColors: 6,  powerChance: 0.08, label: "Lako" },
-    normal: { startColors: 9,  powerChance: 0.05, label: "Normalno" },
-    hard:   { startColors: 12, powerChance: 0.03, label: "Teško" }
+    easy:   { startColors: 6,  powerChance: 0.08, label: "Easy" },
+    normal: { startColors: 9,  powerChance: 0.05, label: "Normal" },
+    hard:   { startColors: 12, powerChance: 0.03, label: "Hard" }
 };
 let difficulty = "normal";
 let startColors = DIFFICULTIES.normal.startColors;
 let powerChance = DIFFICULTIES.normal.powerChance;
 let cellTheme = "patterns";   // uzorak na kvadratićima: "plain" | "patterns"
 let showNumbers = true;       // prikaz brojeva na bojama (pomoć za daltoniste)
+let musicOn = true;           // sviranje pozadinske glazbe
 let gameMode = "classic";     // oblik polja: "classic" (kvadrati) | "hex" (saće)
 
 // Oznaka džokera: outline jokerske kape/glave, okrenut naopačke (rotacija 180°)
@@ -77,12 +78,18 @@ let combo = 0;             // koliko je kvadrata zatvoreno zaredom
 let completedThisDrop = false; // je li trenutni potez na ploču zatvorio kvadrat
 let activeColors = [];     // prave boje aktivne na ovom nivou + bijeli džoker
 
-const MAX_SCORES = 5;      // koliko igrača se pamti na ljestvici
-let leaderboard = [];      // [{name, score, level}], sortirano silazno (localStorage)
+const MAX_SCORES = 10;         // koliko igrača se pamti na ljestvici
+const RACE_START_MS = 60000;   // Time Race: početno vrijeme (60 s)
+const RACE_BONUS_MS = 5000;    // Time Race: +5 s po zatvorenom kvadratu
+let leaderboard = [];      // [{name, score, level, difficulty, mode}] - endless (Classic/HEX)
+let leaderboardTime = [];  // [{name, score, level, difficulty}] - Time Race, sortirano po bodovima
 let playerName = "";       // zadnje upisano ime igrača
-let currentEntry = null;   // unos trenutne igre na ljestvici (za živo uređivanje imena)
+let currentEntry = null;   // unos trenutne igre na aktivnoj ljestvici (za živo uređivanje imena)
+let raceEndTime = 0;       // performance.now() trenutak isteka vremena
+let raceRemainingMs = 0;   // trenutačno preostalo vrijeme (za prikaz + pauzu)
+let raceInterval = null;   // setInterval id za odbrojavanje
 
-let storage = [null, null, null, null, null];
+let storage = [null, null, null, null, null, null];
 
 let dragSource = null;     // { from:"incoming" } | { from:"storage", index }
 
@@ -94,8 +101,13 @@ const storageDiv = document.getElementById("storage");
 const boardDiv = document.getElementById("board");
 const scoreDiv = document.getElementById("score");
 const levelSpan = document.getElementById("level");
-const progressSpan = document.getElementById("progress");
-const targetSpan = document.getElementById("target");
+const bgm = document.getElementById("bgm");
+const raceHud = document.getElementById("raceHud");
+const raceTimeSpan = document.getElementById("raceTime");
+const finalTimeP = document.getElementById("finalTimeP");
+const finalTimeSpan = document.getElementById("finalTime");
+const finalScoreP = document.getElementById("finalScoreP");
+const gameOverMsg = document.getElementById("gameOverMsg");
 const collectorBox = document.getElementById("collector");
 const remainingSpan = document.getElementById("remaining");
 const overlay = document.getElementById("overlay");
@@ -131,9 +143,7 @@ function rebuildActiveColors() {
 
 function updateHud() {
     levelSpan.textContent = level;
-    progressSpan.textContent = completedThisLevel;
     const t = targetForLevel(level);
-    targetSpan.textContent = t;
     remainingSpan.textContent = Math.max(0, t - completedThisLevel);
 }
 
@@ -421,9 +431,19 @@ function createBoard() {
         if (hex) {
             const outline = document.createElement("div");
             outline.className = "hex-outline";
-            outline.style.backgroundImage = hexOutlineBg("#94a3b8");
+            outline.style.backgroundImage = hexOutlineBg("#555");
             bigDiv.appendChild(outline);
         }
+
+        // drop na cijeli veliki kvadrat (razmak/padding izvan polja) -> auto-place za boju
+        bigDiv.addEventListener("dragover", (e) => e.preventDefault());
+        bigDiv.addEventListener("drop", (e) => {
+            e.preventDefault();
+            if (e.target !== bigDiv) return;  // već obradio cell handler
+            const it = draggedItem();
+            if (!it || it.kind !== "color") return;  // moći trebaju konkretno polje
+            dropOnCell(square, 0);   // cellIndex se za boju ionako ignorira (auto-place)
+        });
 
         boardDiv.appendChild(bigDiv);
     }
@@ -479,7 +499,17 @@ function dropOnCell(square, cellIndex) {
 
     // ilegalan potez -> predmet ostaje gdje je
     completedThisDrop = false;
-    if (!tryApplyItem(square, cellIndex, item)) return;
+    let applied;
+    if (item.kind === "color") {
+        // AUTO-PLACE: boja se stavlja u prvo slobodno polje u kvadratu (ako paše)
+        if (!colorFitsSquare(square, item.color)) return;
+        const emptyIdx = square.cells.findIndex(c => c === null);
+        if (emptyIdx === -1) return;
+        applied = tryPlaceColor(square, emptyIdx, item.color);
+    } else {
+        applied = tryApplyPower(square, cellIndex, item.power);
+    }
+    if (!applied) return;
 
     // valjan potez koji NIJE zatvorio kvadrat prekida combo niz
     if (!completedThisDrop) combo = 0;
@@ -649,6 +679,16 @@ function showCombo(comboCount, bonus) {
     pop.addEventListener("animationend", () => pop.remove());
 }
 
+// Bljesak "+20s" iznad Time Race tajmera
+function showTimeBonus() {
+    if (!raceHud) return;
+    const pop = document.createElement("span");
+    pop.className = "time-bonus-pop";
+    pop.textContent = "+5s";
+    raceHud.appendChild(pop);
+    pop.addEventListener("animationend", () => pop.remove());
+}
+
 // Bljesak natpisa kod prelaska na novi nivo
 function showLevelUp() {
     const banner = document.createElement("div");
@@ -680,6 +720,10 @@ function checkCompleted(square) {
         if (bonus > 0) showCombo(combo, bonus);
 
         completedThisLevel++;
+
+        // Time Race: svaki zatvoreni kvadrat produžuje tajmer
+        if (isTimeRace()) addRaceBonus();
+
         if (completedThisLevel >= targetForLevel(level)) {
             level++;
             completedThisLevel = 0;
@@ -760,22 +804,39 @@ function checkGameOver() {
 }
 
 function showGameOver() {
+    stopRaceTimer();
     finalScoreSpan.textContent = score;
     finalLevelSpan.textContent = level;
 
-    // pokušaj uvrstiti rezultat na ljestvicu (top 5)
+    const timeRace = isTimeRace();
+
+    // Time Race: iznad game overa piše "Time's up!"; score/level se prikazuju kao i inače
+    if (finalScoreP) finalScoreP.hidden = false;
+    if (finalTimeP) finalTimeP.hidden = true;
+    if (gameOverMsg) gameOverMsg.textContent = timeRace ? "Time's up!" : "No more moves.";
+
+    // pokušaj uvrstiti u odgovarajuću ljestvicu
     currentEntry = null;
-    if (qualifiesForBoard(score)) {
-        currentEntry = { name: playerName, score: score, level: level };
+    if (timeRace) {
+        if (qualifiesForTimeBoard(score)) {
+            currentEntry = { name: playerName, score: score, level: level, difficulty: difficulty };
+            leaderboardTime.push(currentEntry);
+            sortLeaderboardTime();
+            if (leaderboardTime.indexOf(currentEntry) === -1) currentEntry = null;
+            saveLeaderboards();
+        }
+    } else if (qualifiesForBoard(score)) {
+        currentEntry = { name: playerName, score: score, level: level, difficulty: difficulty, mode: gameMode };
         leaderboard.push(currentEntry);
         sortLeaderboard();
         if (leaderboard.indexOf(currentEntry) === -1) currentEntry = null;
-        saveLeaderboard();
+        saveLeaderboards();
     }
 
     if (currentEntry) {
-        const rank = leaderboard.indexOf(currentEntry) + 1;
-        newRecordP.textContent = rank === 1 ? "New record! 🎉" : ("You made top 5! (" + rank + ")");
+        const list = timeRace ? leaderboardTime : leaderboard;
+        const rank = list.indexOf(currentEntry) + 1;
+        newRecordP.textContent = rank === 1 ? "New record! 🎉" : ("You made top " + MAX_SCORES + "! (" + rank + ")");
         newRecordP.style.display = "";
     } else {
         newRecordP.style.display = "none";
@@ -804,17 +865,28 @@ function loadHighScore() {
         const raw = localStorage.getItem("blockade_leaderboard");
         leaderboard = raw ? JSON.parse(raw) : [];
         if (!Array.isArray(leaderboard)) leaderboard = [];
+        const rawT = localStorage.getItem("blockade_leaderboard_time");
+        leaderboardTime = rawT ? JSON.parse(rawT) : [];
+        if (!Array.isArray(leaderboardTime)) leaderboardTime = [];
         playerName = localStorage.getItem("blockade_player_name") || "";
     } catch (e) {
         leaderboard = [];
+        leaderboardTime = [];
         playerName = "";
     }
     sortLeaderboard();
+    sortLeaderboardTime();
 }
 
 function sortLeaderboard() {
     leaderboard.sort((a, b) => b.score - a.score);
     if (leaderboard.length > MAX_SCORES) leaderboard.length = MAX_SCORES;
+}
+
+// Time Race (blitz): sortirano po bodovima silazno (više = bolje)
+function sortLeaderboardTime() {
+    leaderboardTime.sort((a, b) => b.score - a.score);
+    if (leaderboardTime.length > MAX_SCORES) leaderboardTime.length = MAX_SCORES;
 }
 
 function qualifiesForBoard(s) {
@@ -823,9 +895,20 @@ function qualifiesForBoard(s) {
     return s > leaderboard[leaderboard.length - 1].score;
 }
 
-function saveLeaderboard() {
-    try { localStorage.setItem("blockade_leaderboard", JSON.stringify(leaderboard)); } catch (e) {}
+function qualifiesForTimeBoard(s) {
+    if (s <= 0) return false;
+    if (leaderboardTime.length < MAX_SCORES) return true;
+    return s > leaderboardTime[leaderboardTime.length - 1].score;
 }
+
+function saveLeaderboards() {
+    try {
+        localStorage.setItem("blockade_leaderboard", JSON.stringify(leaderboard));
+        localStorage.setItem("blockade_leaderboard_time", JSON.stringify(leaderboardTime));
+    } catch (e) {}
+}
+// legacy alias (nekad se zvala saveLeaderboard)
+function saveLeaderboard() { saveLeaderboards(); }
 
 function savePlayerName() {
     try { localStorage.setItem("blockade_player_name", playerName); } catch (e) {}
@@ -835,23 +918,53 @@ function escapeHtml(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+let hsTab = "score";   // "score" | "time"
+
 function updateHighscoreScreen() {
-    if (leaderboard.length === 0) {
+    const list = hsTab === "time" ? leaderboardTime : leaderboard;
+    if (list.length === 0) {
         hsListDiv.innerHTML = '<p class="hs-empty">No scores yet.</p>';
         return;
     }
     let html = "";
-    leaderboard.forEach((e, i) => {
+    list.forEach((e, i) => {
         const nm = e.name ? escapeHtml(e.name) : "—";
-        html +=
-            '<div class="hs-row">' +
-                '<span class="hs-rank">' + (i + 1) + '.</span>' +
-                '<span class="hs-pname">' + nm + '</span>' +
-                '<span class="hs-pscore">' + e.score + '</span>' +
-                '<span class="hs-plevel">lvl ' + e.level + '</span>' +
-            '</div>';
+        const diffLabel = e.difficulty && DIFFICULTIES[e.difficulty] ? DIFFICULTIES[e.difficulty].label : "";
+        if (hsTab === "time") {
+            html +=
+                '<div class="hs-row">' +
+                    '<span class="hs-rank">' + (i + 1) + '.</span>' +
+                    '<div class="hs-pname">' +
+                        '<div class="hs-name-main">' + nm + '</div>' +
+                        (diffLabel ? '<div class="hs-meta">' + diffLabel + '</div>' : '') +
+                    '</div>' +
+                    '<span class="hs-pscore">' + e.score + '</span>' +
+                    '<span class="hs-plevel">lvl ' + e.level + '</span>' +
+                '</div>';
+        } else {
+            const modeLabel = e.mode === "hex" ? "HEX" : (e.mode === "classic" ? "Classic" : "");
+            const meta = [diffLabel, modeLabel].filter(Boolean).join(" · ");
+            html +=
+                '<div class="hs-row">' +
+                    '<span class="hs-rank">' + (i + 1) + '.</span>' +
+                    '<div class="hs-pname">' +
+                        '<div class="hs-name-main">' + nm + '</div>' +
+                        (meta ? '<div class="hs-meta">' + meta + '</div>' : '') +
+                    '</div>' +
+                    '<span class="hs-pscore">' + e.score + '</span>' +
+                    '<span class="hs-plevel">lvl ' + e.level + '</span>' +
+                '</div>';
+        }
     });
     hsListDiv.innerHTML = html;
+}
+
+function setHsTab(tab) {
+    hsTab = (tab === "time") ? "time" : "score";
+    document.querySelectorAll(".hs-tab").forEach(b => {
+        b.classList.toggle("active", b.dataset.hstab === hsTab);
+    });
+    updateHighscoreScreen();
 }
 
 // ===== TEŽINA (postavke) =====
@@ -930,12 +1043,81 @@ function updateNumButtons() {
     });
 }
 
-// ===== GAME MOD (oblik polja) =====
+// ===== POZADINSKA GLAZBA (playlist) =====
+// Dodaj novu datoteku u ovaj popis (mora biti u istoj mapi kao veco.html).
+const MUSIC_TRACKS = [
+    "music.mp3.mp3",
+    "music2.mp3.mp3.mp3"
+];
+let currentTrack = 0;
+let musicErrorStreak = 0;
+
+if (bgm) {
+    bgm.volume = 0.4;
+    bgm.addEventListener("ended", () => { musicErrorStreak = 0; playTrack(currentTrack + 1); });
+    bgm.addEventListener("error", () => {
+        musicErrorStreak++;
+        if (musicErrorStreak < MUSIC_TRACKS.length) playTrack(currentTrack + 1);
+    });
+    bgm.addEventListener("playing", () => { musicErrorStreak = 0; });
+}
+
+function playTrack(i) {
+    if (!bgm || MUSIC_TRACKS.length === 0) return;
+    const n = MUSIC_TRACKS.length;
+    currentTrack = ((i % n) + n) % n;
+    bgm.src = MUSIC_TRACKS[currentTrack];
+    if (musicOn) {
+        const p = bgm.play();
+        if (p && typeof p.catch === "function") p.catch(() => {});
+    }
+}
+
+function tryPlayMusic() {
+    if (!bgm || !musicOn) return;
+    if (!bgm.src) {
+        playTrack(currentTrack);
+    } else {
+        const p = bgm.play();
+        if (p && typeof p.catch === "function") p.catch(() => {});
+    }
+}
+
+function setMusic(on, save) {
+    musicOn = !!on;
+    if (save) {
+        try { localStorage.setItem("blockade_music", musicOn ? "1" : "0"); } catch (e) {}
+    }
+    updateMusicButtons();
+    if (bgm) {
+        if (musicOn) tryPlayMusic();
+        else bgm.pause();
+    }
+}
+
+function loadMusic() {
+    let v = "1";
+    try { const s = localStorage.getItem("blockade_music"); if (s !== null) v = s; } catch (e) {}
+    musicOn = v !== "0";
+    updateMusicButtons();
+}
+
+function updateMusicButtons() {
+    document.querySelectorAll(".music-btn").forEach(btn => {
+        btn.classList.toggle("active", (btn.dataset.music === "on") === musicOn);
+    });
+}
+
+// ===== GAME MOD (oblik polja / time race) =====
+function isTimeRace() { return gameMode === "time"; }
+
 function setGameMode(mode, save) {
-    if (mode !== "classic" && mode !== "hex") mode = "classic";
+    if (mode !== "classic" && mode !== "hex" && mode !== "time") mode = "classic";
     gameMode = mode;
     boardDiv.classList.toggle("hex", mode === "hex");
-    createBoard();   // ponovo izgradi ploču (4 ili 6 polja po kvadratu)
+    boardDiv.classList.toggle("time-race", mode === "time");
+    if (raceHud) raceHud.hidden = !isTimeRace();
+    createBoard();   // ponovo izgradi ploču (4 ili 6 polja po kvadratu; time race koristi 4)
     if (save) {
         try { localStorage.setItem("blockade_mode", mode); } catch (e) {}
     }
@@ -946,9 +1128,81 @@ function setGameMode(mode, save) {
 function loadGameMode() {
     let m = "classic";
     try { m = localStorage.getItem("blockade_mode") || "classic"; } catch (e) {}
-    gameMode = (m === "hex") ? "hex" : "classic";
+    gameMode = (m === "hex" || m === "time") ? m : "classic";
     boardDiv.classList.toggle("hex", gameMode === "hex");
+    boardDiv.classList.toggle("time-race", gameMode === "time");
+    if (raceHud) raceHud.hidden = !isTimeRace();
     updateModeButtons();
+}
+
+// ===== TIME RACE TAJMER (countdown) =====
+function formatRaceTime(ms) {
+    if (ms < 0) ms = 0;
+    const totalSec = ms / 1000;
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec - m * 60;
+    return String(m).padStart(2, "0") + ":" + s.toFixed(1).padStart(4, "0");
+}
+
+function updateRaceDisplay() {
+    if (!raceTimeSpan) return;
+    raceTimeSpan.textContent = formatRaceTime(raceRemainingMs);
+    // vizualni alarm kad je vrijeme kratko
+    raceTimeSpan.classList.toggle("race-low", raceRemainingMs > 0 && raceRemainingMs < 10000);
+}
+
+function tickRaceTimer() {
+    if (!isTimeRace() || gameOver) return;
+    raceRemainingMs = raceEndTime - performance.now();
+    if (raceRemainingMs <= 0) {
+        raceRemainingMs = 0;
+        updateRaceDisplay();
+        finishTimeRace();
+        return;
+    }
+    updateRaceDisplay();
+}
+
+function startRaceTimer() {
+    raceEndTime = performance.now() + RACE_START_MS;
+    raceRemainingMs = RACE_START_MS;
+    if (raceInterval) clearInterval(raceInterval);
+    raceInterval = setInterval(tickRaceTimer, 100);
+    updateRaceDisplay();
+}
+
+function stopRaceTimer() {
+    if (raceInterval) { clearInterval(raceInterval); raceInterval = null; }
+}
+
+function pauseRaceTimer() {
+    if (!raceInterval) return;   // već pauziran
+    raceRemainingMs = raceEndTime - performance.now();
+    clearInterval(raceInterval);
+    raceInterval = null;
+}
+
+function resumeRaceTimer() {
+    if (gameOver) return;
+    if (raceRemainingMs <= 0) return;
+    raceEndTime = performance.now() + raceRemainingMs;
+    if (!raceInterval) raceInterval = setInterval(tickRaceTimer, 100);
+    updateRaceDisplay();
+}
+
+// Dodaj bonus vrijeme (na zatvoreni kvadrat)
+function addRaceBonus() {
+    raceEndTime += RACE_BONUS_MS;
+    raceRemainingMs = raceEndTime - performance.now();
+    updateRaceDisplay();
+    showTimeBonus();
+}
+
+// Poziva se kad istekne vrijeme -> kraj igre
+function finishTimeRace() {
+    stopRaceTimer();
+    gameOver = true;
+    showGameOver();
 }
 
 function updateModeButtons() {
@@ -964,12 +1218,15 @@ function openScreen(screen) {
     const hide = screen ? "none" : "";
     menuBtn.style.display = hide;
     helpBtn.style.display = hide;
+    // Time Race: pauziraj tajmer kad je otvoren izbornik (osim Game Over overlaya)
+    if (screen && screen !== overlay && isTimeRace() && !gameOver) pauseRaceTimer();
 }
 
 function closeToGame() {
     allScreens.forEach(s => s.classList.remove("show"));
     menuBtn.style.display = "";
     helpBtn.style.display = "";
+    if (isTimeRace() && !gameOver) resumeRaceTimer();
 }
 
 // ===== POKRETANJE / RESET IGRE =====
@@ -981,7 +1238,7 @@ function startGame() {
     combo = 0;
     completedThisDrop = false;
     rebuildActiveColors();
-    storage = [null, null, null, null, null];
+    storage = [null, null, null, null, null, null];
     bigSquares.forEach(sq => sq.cells = new Array(sq.cells.length).fill(null));
     dragSource = null;
     gameOver = false;
@@ -991,6 +1248,12 @@ function startGame() {
     renderStorage();
     generateNext();
     if (typeof loadBackground === "function") loadBackground();  // vrati na spremljeni izbor
+
+    // Time Race: pokreni tajmer, inače ga zaustavi
+    stopRaceTimer();
+    if (raceTimeSpan) raceTimeSpan.textContent = "00:00.0";
+    if (isTimeRace()) startRaceTimer();
+
     closeToGame();
 }
 
@@ -1004,6 +1267,10 @@ document.getElementById("btnLegendBack").onclick = closeToGame;
 document.getElementById("btnStart").onclick = startGame;
 document.getElementById("btnSettings").onclick = () => { settingsReturn = screenMain; openScreen(screenSettings); };
 document.getElementById("btnHighscore").onclick = () => { updateHighscoreScreen(); openScreen(screenHighscore); };
+
+document.querySelectorAll(".hs-tab").forEach(btn => {
+    btn.onclick = () => setHsTab(btn.dataset.hstab);
+});
 
 document.getElementById("btnSettingsBack").onclick = () => openScreen(settingsReturn);
 document.getElementById("btnHsBack").onclick = () => openScreen(screenMain);
@@ -1026,13 +1293,21 @@ document.querySelectorAll(".num-btn").forEach(btn => {
     btn.onclick = () => setNumbers(btn.dataset.num === "on", true);
 });
 
+document.querySelectorAll(".music-btn").forEach(btn => {
+    btn.onclick = () => setMusic(btn.dataset.music === "on", true);
+});
+
+// pokreni glazbu na prvi klik (preglednici trebaju korisničku gesturu)
+document.addEventListener("click", () => { tryPlayMusic(); }, { once: false, capture: true });
+
 document.querySelectorAll(".mode-btn").forEach(btn => {
     btn.onclick = () => setGameMode(btn.dataset.mode, true);
 });
 
 document.getElementById("btnResetHs").onclick = () => {
     leaderboard = [];
-    saveLeaderboard();
+    leaderboardTime = [];
+    saveLeaderboards();
     updateHighscoreScreen();
 };
 
@@ -1099,6 +1374,7 @@ loadHighScore();
 loadDifficulty();
 loadCellTheme();
 loadNumbers();
+loadMusic();
 loadGameMode();
 createBoard();
 renderBoard();
@@ -1109,16 +1385,18 @@ openScreen(screenMain);
 // ===== POZADINSKA ANIMACIJA (više vrsta: točkice / voda / tamno) =====
 const bgCanvas = document.getElementById("bg");
 const bgCtx = (bgCanvas && bgCanvas.getContext) ? bgCanvas.getContext("2d") : null;
-let bgMode = "dots";          // dots | water | constellation | aurora | warp | grid | none
+let bgMode = "dots";          // dots | water | constellation | warp | fireflies | ripples | none
 let bgW = 0, bgH = 0;
 let bgDots = [];
 let bgNet = [];               // konstelacije
 let bgStars = [];             // zvjezdani warp
+let bgFireflies = [];         // krijesnice
+let bgRipples = [];           // valovi/ripples
 const BG_TRAIL = 45;
 const bgStart = Date.now();
-const BG_MODES = ["dots", "water", "constellation", "aurora", "warp", "grid", "none"];
+const BG_MODES = ["dots", "water", "constellation", "warp", "fireflies", "ripples", "none"];
 // redoslijed kroz koji pozadina rotira na svaki novi nivo
-const BG_CYCLE = ["dots", "water", "constellation", "aurora", "warp", "grid"];
+const BG_CYCLE = ["dots", "water", "constellation", "warp", "fireflies", "ripples"];
 
 function bgResize() {
     if (!bgCanvas) return;
@@ -1165,10 +1443,32 @@ function bgMakeStars() {
     }
 }
 
+function bgMakeFireflies() {
+    const count = Math.max(30, Math.round((bgW * bgH) / 20000));
+    bgFireflies = [];
+    for (let i = 0; i < count; i++) {
+        bgFireflies.push({
+            x: Math.random() * bgW,
+            y: Math.random() * bgH,
+            r: 1 + Math.random() * 1.8,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: (Math.random() - 0.5) * 0.3,
+            phase: Math.random() * Math.PI * 2,
+            freq: 0.4 + Math.random() * 0.6
+        });
+    }
+}
+
+function bgMakeRipples() {
+    bgRipples = [];
+}
+
 function bgInit(mode) {
     if (mode === "dots") bgMakeDots();
     else if (mode === "constellation") bgMakeNet();
     else if (mode === "warp") bgMakeStars();
+    else if (mode === "fireflies") bgMakeFireflies();
+    else if (mode === "ripples") bgMakeRipples();
 }
 
 // bijele točkice s tragom koji nestane
@@ -1259,24 +1559,31 @@ function bgDrawConstellation() {
     }
 }
 
-// aurora / plazma: meki obojeni valovi (radijalni sjaj) na crnom
-function bgDrawAurora(t) {
+// krijesnice: točkice koje se laganim disanjem pojavljuju i nestaju dok drift-aju
+function bgDrawFireflies(t) {
     bgCtx.fillStyle = "#000";
     bgCtx.fillRect(0, 0, bgW, bgH);
 
-    const colors = ["34,197,94", "59,130,246", "168,85,247", "6,182,212"];
-    bgCtx.globalCompositeOperation = "lighter";
-    for (let i = 0; i < colors.length; i++) {
-        const cx = bgW * (0.5 + 0.35 * Math.sin(t * 0.15 + i * 1.7));
-        const cy = bgH * (0.5 + 0.30 * Math.cos(t * 0.12 + i * 2.1));
-        const rad = Math.min(bgW, bgH) * (0.45 + 0.1 * Math.sin(t * 0.2 + i));
-        const g = bgCtx.createRadialGradient(cx, cy, 0, cx, cy, rad);
-        g.addColorStop(0, "rgba(" + colors[i] + ",0.40)");
-        g.addColorStop(1, "rgba(" + colors[i] + ",0)");
-        bgCtx.fillStyle = g;
-        bgCtx.fillRect(0, 0, bgW, bgH);
+    for (const f of bgFireflies) {
+        f.x += f.vx;
+        f.y += f.vy;
+        if (f.x < 0) f.x = bgW; else if (f.x > bgW) f.x = 0;
+        if (f.y < 0) f.y = bgH; else if (f.y > bgH) f.y = 0;
+
+        const alpha = 0.15 + 0.55 * Math.abs(Math.sin(t * f.freq + f.phase));
+
+        // meki sjaj
+        bgCtx.fillStyle = "rgba(255, 245, 200, " + (alpha * 0.15) + ")";
+        bgCtx.beginPath();
+        bgCtx.arc(f.x, f.y, f.r * 3.5, 0, Math.PI * 2);
+        bgCtx.fill();
+
+        // jezgra
+        bgCtx.fillStyle = "rgba(255, 250, 220, " + alpha + ")";
+        bgCtx.beginPath();
+        bgCtx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+        bgCtx.fill();
     }
-    bgCtx.globalCompositeOperation = "source-over";
 }
 
 // zvjezdani warp: zvijezde promiču iz sredine prema rubovima
@@ -1315,35 +1622,33 @@ function bgDrawWarp() {
     bgCtx.globalAlpha = 1;
 }
 
-// neonska mreža (synthwave): perspektivna rešetka koja klizi
-function bgDrawGrid(t) {
+// valovi (ripples): koncentrični krugovi šire se iz nasumičnih točaka i nestaju
+function bgDrawRipples(t) {
     bgCtx.fillStyle = "#000";
     bgCtx.fillRect(0, 0, bgW, bgH);
 
-    const horizon = bgH * 0.45;
-    const cx = bgW / 2;
-
-    // okomite linije (konvergiraju u horizont)
-    bgCtx.strokeStyle = "rgba(236,72,153,0.6)";
-    bgCtx.lineWidth = 1.5;
-    const cols = 16;
-    for (let i = -cols; i <= cols; i++) {
-        bgCtx.beginPath();
-        bgCtx.moveTo(cx, horizon);
-        bgCtx.lineTo(cx + (i / cols) * bgW, bgH);
-        bgCtx.stroke();
+    // povremeno stvori novi val
+    if (Math.random() < 0.03) {
+        bgRipples.push({
+            x: Math.random() * bgW,
+            y: Math.random() * bgH,
+            birth: t,
+            maxR: 80 + Math.random() * 140,
+            life: 2.5 + Math.random() * 1.5
+        });
     }
 
-    // vodoravne linije koje klize prema gledatelju
-    bgCtx.strokeStyle = "rgba(34,211,238,0.6)";
-    const rows = 16;
-    const off = (t * 0.25) % 1;
-    for (let i = 0; i < rows; i++) {
-        const f = (i + off) / rows;
-        const y = horizon + (bgH - horizon) * f * f;
+    bgCtx.lineWidth = 1.4;
+    for (let i = bgRipples.length - 1; i >= 0; i--) {
+        const r = bgRipples[i];
+        const age = t - r.birth;
+        if (age > r.life) { bgRipples.splice(i, 1); continue; }
+        const p = age / r.life;                    // 0..1
+        const radius = r.maxR * p;
+        const alpha = (1 - p) * 0.55;
+        bgCtx.strokeStyle = "rgba(255, 255, 255, " + alpha + ")";
         bgCtx.beginPath();
-        bgCtx.moveTo(0, y);
-        bgCtx.lineTo(bgW, y);
+        bgCtx.arc(r.x, r.y, radius, 0, Math.PI * 2);
         bgCtx.stroke();
     }
 }
@@ -1354,9 +1659,9 @@ function bgLoop() {
         if (bgMode === "dots") bgDrawDots();
         else if (bgMode === "water") bgDrawWater(t);
         else if (bgMode === "constellation") bgDrawConstellation();
-        else if (bgMode === "aurora") bgDrawAurora(t);
         else if (bgMode === "warp") bgDrawWarp();
-        else if (bgMode === "grid") bgDrawGrid(t);
+        else if (bgMode === "fireflies") bgDrawFireflies(t);
+        else if (bgMode === "ripples") bgDrawRipples(t);
         else bgCtx.clearRect(0, 0, bgW, bgH);
     }
     requestAnimationFrame(bgLoop);
