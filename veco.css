@@ -177,7 +177,7 @@ h3 {
 /* ===== HEX (šesterokuti, 6 kriški) ===== */
 .board.hex {
     grid-template-columns: repeat(5, 150px);
-    row-gap: 0;
+    row-gap: 40px;
     column-gap: 10px;
 }
 
@@ -226,15 +226,7 @@ h3 {
     height: 100%;
 }
 
-/* gornji red lagano lijevo, donji red desno + povučen gore = saće raspored */
-.board.hex .big-square:nth-child(-n + 5) {
-    transform: translateX(-40px);
-}
-
-.board.hex .big-square:nth-child(n + 6) {
-    transform: translateX(40px);
-    margin-top: -37px;
-}
+/* HEX: redovi poravnati (bez saće offseta), samo vertikalni razmak preko row-gap */
 
 .cell {
     background: #374151;
