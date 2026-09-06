@@ -15,6 +15,51 @@ body {
     touch-action: manipulation;
 }
 
+/* ===== Prompt za rotaciju (portret na mobilnim ekranima) ===== */
+.rotate-prompt {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #111827;
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 40px 20px;
+    font-size: 18px;
+    color: #fff;
+    line-height: 1.4;
+}
+
+.rotate-prompt p {
+    margin: 8px 0;
+    max-width: 300px;
+}
+
+.rotate-prompt .rotate-sub {
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.rotate-icon {
+    font-size: 80px;
+    margin-bottom: 22px;
+    animation: rotateHint 2.4s ease-in-out infinite;
+    transform-origin: 50% 50%;
+}
+
+@keyframes rotateHint {
+    0%, 40%   { transform: rotate(0deg); }
+    60%, 100% { transform: rotate(-90deg); }
+}
+
+@media (orientation: portrait) and (max-width: 900px) {
+    .rotate-prompt {
+        display: flex;
+    }
+}
+
 /* pozadinska animacija (bijele točkice s tragom) */
 #bg {
     position: fixed;
