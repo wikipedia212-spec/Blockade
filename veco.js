@@ -92,6 +92,7 @@ let raceInterval = null;   // setInterval id za odbrojavanje
 let storage = [null, null, null, null, null, null];
 
 let dragSource = null;     // { from:"incoming" } | { from:"storage", index }
+let touchDragCtx = null;   // { mirror, offsetX, offsetY } - stanje touch drag-a
 
 const bigSquares = [];
 
@@ -300,6 +301,7 @@ function makeVisual(item, size) {
 
 // ===== DRAG & DROP POMOĆNE =====
 function makeDraggable(el, source) {
+    // ===== Mouse: HTML5 drag & drop =====
     el.draggable = true;
     el.ondragstart = (e) => {
         if (gameOver) { e.preventDefault(); return; }
@@ -308,6 +310,34 @@ function makeDraggable(el, source) {
         e.dataTransfer.effectAllowed = "move";
     };
     el.ondragend = () => { dragSource = null; };
+
+    // ===== Touch: ručna implementacija za mobitele =====
+    el.addEventListener("touchstart", (e) => {
+        if (gameOver) return;
+        e.preventDefault();
+        const t = e.changedTouches[0];
+        dragSource = source;
+
+        const rect = el.getBoundingClientRect();
+        const mirror = el.cloneNode(true);
+        mirror.style.position = "fixed";
+        mirror.style.left = rect.left + "px";
+        mirror.style.top = rect.top + "px";
+        mirror.style.width = rect.width + "px";
+        mirror.style.height = rect.height + "px";
+        mirror.style.margin = "0";
+        mirror.style.pointerEvents = "none";
+        mirror.style.opacity = "0.85";
+        mirror.style.zIndex = "100";
+        mirror.style.transition = "none";
+        document.body.appendChild(mirror);
+
+        touchDragCtx = {
+            mirror: mirror,
+            offsetX: t.clientX - rect.left,
+            offsetY: t.clientY - rect.top
+        };
+    }, { passive: false });
 }
 
 function makeDropTarget(el, onDrop) {
@@ -1334,6 +1364,66 @@ if (musicPlayBtn) musicPlayBtn.onclick = () => setMusic(!musicOn, true);
 
 // pokreni glazbu na prvi klik (preglednici trebaju korisničku gesturu)
 document.addEventListener("click", () => { tryPlayMusic(); }, { once: false, capture: true });
+
+// ===== TOUCH DRAG (mobiteli) =====
+document.addEventListener("touchmove", (e) => {
+    if (!touchDragCtx) return;
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    touchDragCtx.mirror.style.left = (t.clientX - touchDragCtx.offsetX) + "px";
+    touchDragCtx.mirror.style.top = (t.clientY - touchDragCtx.offsetY) + "px";
+}, { passive: false });
+
+function endTouchDrag(clientX, clientY, dropOnTarget) {
+    const ctx = touchDragCtx;
+    if (!ctx) return;
+    touchDragCtx = null;
+    ctx.mirror.style.display = "none";  // sakrij da elementFromPoint nađe element ispod
+    const target = (clientX != null && dropOnTarget)
+        ? document.elementFromPoint(clientX, clientY)
+        : null;
+    ctx.mirror.remove();
+
+    if (!dropOnTarget || !target || !dragSource) { dragSource = null; return; }
+
+    // pronađi drop target: prvo cell, pa big-square, pa slot
+    const cell = target.closest ? target.closest(".cell") : null;
+    if (cell && cell.parentNode && cell.parentNode.classList.contains("big-square")) {
+        const sq = bigSquares.find(s => s.element === cell.parentNode);
+        if (sq) {
+            const idx = Array.prototype.indexOf.call(cell.parentNode.children, cell);
+            dropOnCell(sq, idx);
+            return;
+        }
+    }
+    const bigSq = target.closest ? target.closest(".big-square") : null;
+    if (bigSq) {
+        const sq = bigSquares.find(s => s.element === bigSq);
+        if (sq) {
+            const it = draggedItem();
+            if (it && it.kind === "color") dropOnCell(sq, 0);   // auto-place za boju
+        }
+        dragSource = null;
+        return;
+    }
+    const slot = target.closest ? target.closest(".slot") : null;
+    if (slot && slot.parentNode === storageDiv) {
+        const slotIdx = Array.prototype.indexOf.call(storageDiv.children, slot);
+        dropOnSlot(slotIdx);
+        return;
+    }
+    dragSource = null;
+}
+
+document.addEventListener("touchend", (e) => {
+    if (!touchDragCtx) return;
+    const t = e.changedTouches[0];
+    endTouchDrag(t.clientX, t.clientY, true);
+}, { passive: false });
+
+document.addEventListener("touchcancel", () => {
+    endTouchDrag(null, null, false);
+});
 
 document.querySelectorAll(".mode-btn").forEach(btn => {
     btn.onclick = () => setGameMode(btn.dataset.mode, true);

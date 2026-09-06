@@ -7,6 +7,12 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    /* mobitel: onemogući dugi-pritisak menije i tap-highlight */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 /* pozadinska animacija (bijele točkice s tragom) */
