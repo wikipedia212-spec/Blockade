@@ -49,6 +49,18 @@ body {
     transform-origin: 50% 50%;
 }
 
+.rotate-fs-btn {
+    margin-top: 24px;
+    background: #22c55e;
+    color: #111;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
 @keyframes rotateHint {
     0%, 40%   { transform: rotate(0deg); }
     60%, 100% { transform: rotate(-90deg); }
@@ -910,6 +922,7 @@ h3 {
 #musicNext { right: 120px; }
 #musicPlay { right: 172px; }
 #musicPrev { right: 224px; }
+#fullscreenBtn { right: 276px; }
 
 /* ? gumb (legenda moći), pokraj gumba za izbornik */
 .help-btn {

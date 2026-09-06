@@ -125,6 +125,8 @@ const helpBtn = document.getElementById("helpBtn");
 const musicPrevBtn = document.getElementById("musicPrev");
 const musicPlayBtn = document.getElementById("musicPlay");
 const musicNextBtn = document.getElementById("musicNext");
+const fullscreenBtn = document.getElementById("fullscreenBtn");
+const rotateFsBtn = document.getElementById("rotateFsBtn");
 const screenMain = document.getElementById("screen-main");
 const screenSettings = document.getElementById("screen-settings");
 const screenHighscore = document.getElementById("screen-highscore");
@@ -1276,6 +1278,7 @@ function openScreen(screen) {
     if (musicPrevBtn) musicPrevBtn.style.display = hide;
     if (musicPlayBtn) musicPlayBtn.style.display = hide;
     if (musicNextBtn) musicNextBtn.style.display = hide;
+    if (fullscreenBtn) fullscreenBtn.style.display = hide;
     // Time Race: pauziraj tajmer kad je otvoren izbornik (osim Game Over overlaya)
     if (screen && screen !== overlay && isTimeRace() && !gameOver) pauseRaceTimer();
 }
@@ -1287,6 +1290,7 @@ function closeToGame() {
     if (musicPrevBtn) musicPrevBtn.style.display = "";
     if (musicPlayBtn) musicPlayBtn.style.display = "";
     if (musicNextBtn) musicNextBtn.style.display = "";
+    if (fullscreenBtn) fullscreenBtn.style.display = "";
     if (isTimeRace() && !gameOver) resumeRaceTimer();
 }
 
@@ -1361,6 +1365,41 @@ document.querySelectorAll(".music-btn").forEach(btn => {
 if (musicPrevBtn) musicPrevBtn.onclick = () => playTrack(currentTrack - 1);
 if (musicNextBtn) musicNextBtn.onclick = () => playTrack(currentTrack + 1);
 if (musicPlayBtn) musicPlayBtn.onclick = () => setMusic(!musicOn, true);
+
+// ===== FULLSCREEN =====
+function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+
+function toggleFullscreen() {
+    const el = document.documentElement;
+    if (!isFullscreen()) {
+        const req = el.requestFullscreen || el.webkitRequestFullscreen;
+        if (!req) return;
+        const p = req.call(el);
+        const afterEnter = () => {
+            // pokušaj zaključati orijentaciju na landscape (radi na Chrome/Android u fullscreenu)
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock("landscape").catch(() => {});
+            }
+        };
+        if (p && typeof p.then === "function") p.then(afterEnter).catch(() => {});
+        else afterEnter();
+    } else {
+        const exit = document.exitFullscreen || document.webkitExitFullscreen;
+        if (exit) exit.call(document);
+    }
+}
+
+function updateFullscreenBtn() {
+    if (fullscreenBtn) fullscreenBtn.title = isFullscreen() ? "Exit fullscreen" : "Fullscreen";
+}
+
+document.addEventListener("fullscreenchange", updateFullscreenBtn);
+document.addEventListener("webkitfullscreenchange", updateFullscreenBtn);
+
+if (fullscreenBtn) fullscreenBtn.onclick = toggleFullscreen;
+if (rotateFsBtn) rotateFsBtn.onclick = toggleFullscreen;
 
 // pokreni glazbu na prvi klik (preglednici trebaju korisničku gesturu)
 document.addEventListener("click", () => { tryPlayMusic(); }, { once: false, capture: true });
