@@ -48,7 +48,10 @@
 
 </div>
 
-<!-- Help button (powers legend) and menu button, shown during play -->
+<!-- Kontrole glazbe + help + menu, gore desno -->
+<button class="music-ctrl-btn" id="musicPrev" title="Previous track">⏮</button>
+<button class="music-ctrl-btn" id="musicPlay" title="Play / Pause">⏸</button>
+<button class="music-ctrl-btn" id="musicNext" title="Next track">⏭</button>
 <button class="help-btn" id="helpBtn" title="Powers legend">?</button>
 <button class="menu-btn" id="menuBtn" title="Menu (Esc)">☰</button>
 
@@ -86,6 +89,8 @@
             <button class="bg-btn" data-bg="warp">Warp</button>
             <button class="bg-btn" data-bg="fireflies">Fireflies</button>
             <button class="bg-btn" data-bg="ripples">Ripples</button>
+            <button class="bg-btn" data-bg="topo">Topo</button>
+            <button class="bg-btn" data-bg="matrix">Matrix</button>
             <button class="bg-btn" data-bg="none">Plain</button>
         </div>
         <p>Fields (pattern):</p>
@@ -124,7 +129,7 @@
 <!-- Powers legend (in-game, ? button) -->
 <div class="overlay" id="screen-legend">
     <div class="overlay-box">
-        <h2>Diamonds (powers)</h2>
+        <h2>Powers</h2>
         <div class="legend legend-in-overlay">
             <div class="legend-item"><span class="leg-tri power-white"><svg class="drop-mark" width="12" height="12" viewBox="0 0 24 25" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.5 C 14 8 19 12 19 15.5 A 7 7 0 0 1 5 15.5 C 5 12 10 8 12 2.5 Z" fill="none" stroke="#111827" stroke-width="2.2" stroke-linejoin="round"/></svg></span> Turn a field into a joker (white, matches anything)</div>
             <div class="legend-item"><span class="leg-tri power-add">+</span> Add the missing color (1 field)</div>

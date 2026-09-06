@@ -121,6 +121,9 @@ const restartBtn = document.getElementById("restartBtn");
 // Izbornici
 const menuBtn = document.getElementById("menuBtn");
 const helpBtn = document.getElementById("helpBtn");
+const musicPrevBtn = document.getElementById("musicPrev");
+const musicPlayBtn = document.getElementById("musicPlay");
+const musicNextBtn = document.getElementById("musicNext");
 const screenMain = document.getElementById("screen-main");
 const screenSettings = document.getElementById("screen-settings");
 const screenHighscore = document.getElementById("screen-highscore");
@@ -525,6 +528,22 @@ function dropOnCell(square, cellIndex) {
 
 function dropOnSlot(index) {
     if (gameOver || !dragSource) return;
+
+    const item = draggedItem();
+    if (!item) return;
+
+    // Bijela moć na obojenu kockicu u spremištu -> pretvori tu kockicu u džoker
+    if (item.kind === "power" && item.power === "white"
+        && storage[index] && storage[index].kind === "color"
+        && storage[index].color !== WHITE) {
+        storage[index] = { kind: "color", color: WHITE };
+        consumeDragSource();
+        dragSource = null;
+        renderStorage();
+        renderIncoming();
+        checkGameOver();
+        return;
+    }
 
     // samo prazan slot prima (nema zamjene)
     if (storage[index] !== null) return;
@@ -1047,7 +1066,8 @@ function updateNumButtons() {
 // Dodaj novu datoteku u ovaj popis (mora biti u istoj mapi kao veco.html).
 const MUSIC_TRACKS = [
     "music.mp3.mp3",
-    "music2.mp3.mp3.mp3"
+    "music2.mp3.mp3.mp3",
+    "music3.mp3.mp3"
 ];
 let currentTrack = 0;
 let musicErrorStreak = 0;
@@ -1106,6 +1126,11 @@ function updateMusicButtons() {
     document.querySelectorAll(".music-btn").forEach(btn => {
         btn.classList.toggle("active", (btn.dataset.music === "on") === musicOn);
     });
+    updateMusicPlayBtn();
+}
+
+function updateMusicPlayBtn() {
+    if (musicPlayBtn) musicPlayBtn.textContent = musicOn ? "⏸" : "▶";
 }
 
 // ===== GAME MOD (oblik polja / time race) =====
@@ -1218,6 +1243,9 @@ function openScreen(screen) {
     const hide = screen ? "none" : "";
     menuBtn.style.display = hide;
     helpBtn.style.display = hide;
+    if (musicPrevBtn) musicPrevBtn.style.display = hide;
+    if (musicPlayBtn) musicPlayBtn.style.display = hide;
+    if (musicNextBtn) musicNextBtn.style.display = hide;
     // Time Race: pauziraj tajmer kad je otvoren izbornik (osim Game Over overlaya)
     if (screen && screen !== overlay && isTimeRace() && !gameOver) pauseRaceTimer();
 }
@@ -1226,6 +1254,9 @@ function closeToGame() {
     allScreens.forEach(s => s.classList.remove("show"));
     menuBtn.style.display = "";
     helpBtn.style.display = "";
+    if (musicPrevBtn) musicPrevBtn.style.display = "";
+    if (musicPlayBtn) musicPlayBtn.style.display = "";
+    if (musicNextBtn) musicNextBtn.style.display = "";
     if (isTimeRace() && !gameOver) resumeRaceTimer();
 }
 
@@ -1296,6 +1327,10 @@ document.querySelectorAll(".num-btn").forEach(btn => {
 document.querySelectorAll(".music-btn").forEach(btn => {
     btn.onclick = () => setMusic(btn.dataset.music === "on", true);
 });
+
+if (musicPrevBtn) musicPrevBtn.onclick = () => playTrack(currentTrack - 1);
+if (musicNextBtn) musicNextBtn.onclick = () => playTrack(currentTrack + 1);
+if (musicPlayBtn) musicPlayBtn.onclick = () => setMusic(!musicOn, true);
 
 // pokreni glazbu na prvi klik (preglednici trebaju korisničku gesturu)
 document.addEventListener("click", () => { tryPlayMusic(); }, { once: false, capture: true });
@@ -1392,11 +1427,13 @@ let bgNet = [];               // konstelacije
 let bgStars = [];             // zvjezdani warp
 let bgFireflies = [];         // krijesnice
 let bgRipples = [];           // valovi/ripples
+let bgTopoPeaks = [];         // topografska karta - središta krugova
+let bgMatrixCols = [];        // matrix code - kolone
 const BG_TRAIL = 45;
 const bgStart = Date.now();
-const BG_MODES = ["dots", "water", "constellation", "warp", "fireflies", "ripples", "none"];
+const BG_MODES = ["dots", "water", "constellation", "warp", "fireflies", "ripples", "topo", "matrix", "none"];
 // redoslijed kroz koji pozadina rotira na svaki novi nivo
-const BG_CYCLE = ["dots", "water", "constellation", "warp", "fireflies", "ripples"];
+const BG_CYCLE = ["dots", "water", "constellation", "warp", "fireflies", "ripples", "topo", "matrix"];
 
 function bgResize() {
     if (!bgCanvas) return;
@@ -1463,12 +1500,42 @@ function bgMakeRipples() {
     bgRipples = [];
 }
 
+function bgMakeTopo() {
+    bgTopoPeaks = [];
+    const count = 4;
+    for (let i = 0; i < count; i++) {
+        bgTopoPeaks.push({
+            x: Math.random() * bgW,
+            y: Math.random() * bgH,
+            vx: (Math.random() - 0.5) * 0.35,
+            vy: (Math.random() - 0.5) * 0.35,
+            phase: Math.random() * Math.PI * 2
+        });
+    }
+}
+
+const MATRIX_FONT_SIZE = 16;
+const MATRIX_COL_STEP = 32;   // razmak između kolona (manje kolona = rjeđe padanje)
+const MATRIX_CHARS = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#@%&";
+function bgMakeMatrix() {
+    const cols = Math.max(1, Math.floor(bgW / MATRIX_COL_STEP));
+    bgMatrixCols = [];
+    for (let i = 0; i < cols; i++) {
+        bgMatrixCols.push({
+            y: Math.random() * bgH,
+            speed: 1 + Math.random() * 2
+        });
+    }
+}
+
 function bgInit(mode) {
     if (mode === "dots") bgMakeDots();
     else if (mode === "constellation") bgMakeNet();
     else if (mode === "warp") bgMakeStars();
     else if (mode === "fireflies") bgMakeFireflies();
     else if (mode === "ripples") bgMakeRipples();
+    else if (mode === "topo") bgMakeTopo();
+    else if (mode === "matrix") bgMakeMatrix();
 }
 
 // bijele točkice s tragom koji nestane
@@ -1653,6 +1720,62 @@ function bgDrawRipples(t) {
     }
 }
 
+// topografska karta: koncentrični krugovi iz nekoliko središta koja se pomiču
+function bgDrawTopo(t) {
+    bgCtx.fillStyle = "#000";
+    bgCtx.fillRect(0, 0, bgW, bgH);
+
+    bgCtx.strokeStyle = "rgba(255,255,255,0.22)";
+    bgCtx.lineWidth = 1;
+
+    for (const p of bgTopoPeaks) {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > bgW) p.vx *= -1;
+        if (p.y < 0 || p.y > bgH) p.vy *= -1;
+
+        const ringCount = 10;
+        for (let r = 1; r <= ringCount; r++) {
+            // radiusi lagano dišu s vremenom da izgleda kao žive konture
+            const radius = r * 42 + Math.sin(t * 0.4 + p.phase + r * 0.25) * 7;
+            bgCtx.beginPath();
+            bgCtx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+            bgCtx.stroke();
+        }
+    }
+}
+
+// matrix code: bijeli znakovi se penju odozdo prema gore s tragom koji nestaje
+function bgDrawMatrix() {
+    // tamni preljev brže briše trag
+    bgCtx.fillStyle = "rgba(0, 0, 0, 0.2)";
+    bgCtx.fillRect(0, 0, bgW, bgH);
+
+    bgCtx.font = MATRIX_FONT_SIZE + "px monospace";
+    bgCtx.textBaseline = "top";
+
+    for (let i = 0; i < bgMatrixCols.length; i++) {
+        const col = bgMatrixCols[i];
+        const x = i * MATRIX_COL_STEP;
+
+        // srednji znak tik ispod glave -> postaje dio traga koji ostaje iza (dolje)
+        const ch1 = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
+        bgCtx.fillStyle = "rgba(200, 200, 200, 0.75)";
+        bgCtx.fillText(ch1, x, col.y + MATRIX_FONT_SIZE);
+
+        // svijetla "glava" - najsvjetliji bijeli znak (na vrhu strujice)
+        const ch2 = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
+        bgCtx.fillStyle = "rgba(255, 255, 255, 1)";
+        bgCtx.fillText(ch2, x, col.y);
+
+        col.y -= col.speed;   // penje se prema gore
+        if (col.y < -MATRIX_FONT_SIZE && Math.random() < 0.025) {
+            col.y = bgH;      // vrati na dno da se opet penje
+            col.speed = 1 + Math.random() * 2;
+        }
+    }
+}
+
 function bgLoop() {
     if (bgCtx) {
         const t = (Date.now() - bgStart) / 1000;
@@ -1662,6 +1785,8 @@ function bgLoop() {
         else if (bgMode === "warp") bgDrawWarp();
         else if (bgMode === "fireflies") bgDrawFireflies(t);
         else if (bgMode === "ripples") bgDrawRipples(t);
+        else if (bgMode === "topo") bgDrawTopo(t);
+        else if (bgMode === "matrix") bgDrawMatrix();
         else bgCtx.clearRect(0, 0, bgW, bgH);
     }
     requestAnimationFrame(bgLoop);
