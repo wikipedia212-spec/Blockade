@@ -54,7 +54,14 @@ body {
     60%, 100% { transform: rotate(-90deg); }
 }
 
-@media (orientation: portrait) and (max-width: 900px) {
+/* pokaži prompt u portretu na dodirnim uređajima (touch + portrait) */
+@media (orientation: portrait) and (pointer: coarse) {
+    .rotate-prompt {
+        display: flex;
+    }
+}
+/* fallback: bilo koji portret uski ekran (npr. kad pointer detekcija ne radi) */
+@media (orientation: portrait) and (max-device-width: 900px) {
     .rotate-prompt {
         display: flex;
     }
