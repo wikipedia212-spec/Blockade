@@ -746,7 +746,7 @@ function showJokerBonus() {
     wrap.className = "joker-bonus";
     const text = document.createElement("div");
     text.className = "joker-text";
-    text.textContent = "JOKER BONUS  +400";
+    text.textContent = "JOKER BONUS  +100";
     wrap.appendChild(text);
     document.body.appendChild(wrap);
     let removed = false;
@@ -779,9 +779,9 @@ function checkCompleted(square) {
         completedThisDrop = true;
         combo++;
         const bonus = combo >= 2 ? 4 * Math.pow(2, combo - 2) : 0;
-        // specijalni bonus: polje popunjeno isključivo džokerima -> 400 bodova
+        // specijalni bonus: polje popunjeno isključivo džokerima -> 100 bodova
         const allJokers = square.cells.every(c => c === WHITE);
-        const base = allJokers ? 400 : square.cells.length;
+        const base = allJokers ? 100 : square.cells.length;
         score += base + bonus;
         scoreDiv.textContent = score;
         pulse(scoreDiv);
@@ -1413,8 +1413,30 @@ function updateFullscreenBtn() {
     if (fullscreenBtn) fullscreenBtn.title = isFullscreen() ? "Exit fullscreen" : "Fullscreen";
 }
 
-document.addEventListener("fullscreenchange", updateFullscreenBtn);
-document.addEventListener("webkitfullscreenchange", updateFullscreenBtn);
+// U fullscreenu izračunaj scale da game što bolje ispuni ekran
+function fitFullscreen() {
+    const gameEl = document.querySelector(".game");
+    if (!gameEl) return;
+    if (isFullscreen()) {
+        gameEl.style.transform = "none";
+        gameEl.style.transformOrigin = "center center";
+        // izmjeri prirodnu veličinu (bez transformacije)
+        void gameEl.offsetHeight;
+        const w = gameEl.offsetWidth || 1;
+        const h = gameEl.offsetHeight || 1;
+        // fit-inside: skaliraj da stane u oba dimenzija (bez rezanja)
+        const scale = Math.min(window.innerWidth / w, window.innerHeight / h);
+        // primjeni samo ako povećava (< 1 već brauser sam smanjuje)
+        gameEl.style.transform = "scale(" + scale.toFixed(4) + ")";
+    } else {
+        gameEl.style.transform = "";
+    }
+}
+
+document.addEventListener("fullscreenchange", () => { updateFullscreenBtn(); fitFullscreen(); });
+document.addEventListener("webkitfullscreenchange", () => { updateFullscreenBtn(); fitFullscreen(); });
+window.addEventListener("resize", fitFullscreen);
+window.addEventListener("orientationchange", () => setTimeout(fitFullscreen, 100));
 
 if (fullscreenBtn) fullscreenBtn.onclick = toggleFullscreen;
 if (rotateFsBtn) rotateFsBtn.onclick = toggleFullscreen;
