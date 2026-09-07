@@ -740,6 +740,21 @@ function showTimeBonus() {
     pop.addEventListener("animationend", () => pop.remove());
 }
 
+// Specijalni bljesak preko cijelog ekrana kad se polje popuni samim džokerima
+function showJokerBonus() {
+    const wrap = document.createElement("div");
+    wrap.className = "joker-bonus";
+    const text = document.createElement("div");
+    text.className = "joker-text";
+    text.textContent = "JOKER BONUS  +400";
+    wrap.appendChild(text);
+    document.body.appendChild(wrap);
+    let removed = false;
+    const done = () => { if (!removed) { removed = true; wrap.remove(); } };
+    text.addEventListener("animationend", done);
+    setTimeout(done, 1800);   // fallback
+}
+
 // Bljesak natpisa kod prelaska na novi nivo
 function showLevelUp() {
     const banner = document.createElement("div");
@@ -764,11 +779,15 @@ function checkCompleted(square) {
         completedThisDrop = true;
         combo++;
         const bonus = combo >= 2 ? 4 * Math.pow(2, combo - 2) : 0;
-        score += square.cells.length + bonus;   // 1 bod po polju (4 klasično, 6 hex)
+        // specijalni bonus: polje popunjeno isključivo džokerima -> 400 bodova
+        const allJokers = square.cells.every(c => c === WHITE);
+        const base = allJokers ? 400 : square.cells.length;
+        score += base + bonus;
         scoreDiv.textContent = score;
         pulse(scoreDiv);
 
         if (bonus > 0) showCombo(combo, bonus);
+        if (allJokers) showJokerBonus();
 
         completedThisLevel++;
 
@@ -1098,7 +1117,6 @@ function updateNumButtons() {
 // Dodaj novu datoteku u ovaj popis (mora biti u istoj mapi kao veco.html).
 const MUSIC_TRACKS = [
     "music.mp3.mp3",
-    "music2.mp3.mp3.mp3",
     "music3.mp3.mp3"
 ];
 let currentTrack = 0;
