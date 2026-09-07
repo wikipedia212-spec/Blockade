@@ -132,8 +132,9 @@ const screenSettings = document.getElementById("screen-settings");
 const screenHighscore = document.getElementById("screen-highscore");
 const screenPause = document.getElementById("screen-pause");
 const screenLegend = document.getElementById("screen-legend");
+const screenTutorial = document.getElementById("screen-tutorial");
 const hsListDiv = document.getElementById("hsList");
-const allScreens = [screenMain, screenSettings, screenHighscore, screenPause, screenLegend, overlay];
+const allScreens = [screenMain, screenSettings, screenHighscore, screenPause, screenLegend, screenTutorial, overlay];
 
 // ===== NIVOI =====
 // Nivo 1 traži 10 popunjenih kvadratića, svaki sljedeći +1.
@@ -1312,6 +1313,42 @@ function closeToGame() {
     if (isTimeRace() && !gameOver) resumeRaceTimer();
 }
 
+// ===== TUTORIAL =====
+let tutorialSlide = 0;
+const tutSlidesEl = document.getElementById("tutorialSlides");
+const tutStepSpan = document.getElementById("tutStep");
+const tutTotalSpan = document.getElementById("tutTotal");
+const btnTutPrev = document.getElementById("btnTutPrev");
+const btnTutNext = document.getElementById("btnTutNext");
+const btnTutSkip = document.getElementById("btnTutSkip");
+const tutSlidesCount = tutSlidesEl ? tutSlidesEl.children.length : 0;
+if (tutTotalSpan) tutTotalSpan.textContent = tutSlidesCount;
+
+function showTutorialSlide(n) {
+    if (!tutSlidesEl) return;
+    const slides = tutSlidesEl.children;
+    n = Math.max(0, Math.min(slides.length - 1, n));
+    tutorialSlide = n;
+    for (let i = 0; i < slides.length; i++) slides[i].hidden = (i !== n);
+    if (tutStepSpan) tutStepSpan.textContent = (n + 1);
+    if (btnTutPrev) btnTutPrev.disabled = (n === 0);
+    if (btnTutNext) btnTutNext.textContent = (n === slides.length - 1) ? "Start" : "Next";
+}
+
+function openTutorial() {
+    showTutorialSlide(0);
+    openScreen(screenTutorial);
+}
+
+function tutorialNext() {
+    if (tutorialSlide >= tutSlidesCount - 1) startGame();
+    else showTutorialSlide(tutorialSlide + 1);
+}
+
+function tutorialPrev() {
+    if (tutorialSlide > 0) showTutorialSlide(tutorialSlide - 1);
+}
+
 // ===== POKRETANJE / RESET IGRE =====
 function startGame() {
     score = 0;
@@ -1347,7 +1384,11 @@ menuBtn.onclick = () => { if (!gameOver) openScreen(screenPause); };
 helpBtn.onclick = () => { if (!gameOver) openScreen(screenLegend); };
 document.getElementById("btnLegendBack").onclick = closeToGame;
 
-document.getElementById("btnStart").onclick = startGame;
+document.getElementById("btnStart").onclick = openTutorial;
+
+if (btnTutNext) btnTutNext.onclick = tutorialNext;
+if (btnTutPrev) btnTutPrev.onclick = tutorialPrev;
+if (btnTutSkip) btnTutSkip.onclick = startGame;
 document.getElementById("btnSettings").onclick = () => { settingsReturn = screenMain; openScreen(screenSettings); };
 document.getElementById("btnHighscore").onclick = () => { updateHighscoreScreen(); openScreen(screenHighscore); };
 
@@ -1527,10 +1568,10 @@ btnSaveName.onclick = () => {
 };
 
 document.getElementById("btnResume").onclick = closeToGame;
-document.getElementById("btnPauseRestart").onclick = startGame;
+document.getElementById("btnPauseRestart").onclick = openTutorial;
 document.getElementById("btnPauseMain").onclick = () => openScreen(screenMain);
 
-restartBtn.onclick = startGame;
+restartBtn.onclick = openTutorial;
 document.getElementById("btnGoMain").onclick = () => openScreen(screenMain);
 
 // Escape: pauza / nastavi (samo dok igra traje)
@@ -1671,14 +1712,15 @@ function bgMakeRipples() {
 
 function bgMakeTopo() {
     bgTopoPeaks = [];
-    const count = 4;
+    const count = 6;
     for (let i = 0; i < count; i++) {
         bgTopoPeaks.push({
             x: Math.random() * bgW,
             y: Math.random() * bgH,
-            vx: (Math.random() - 0.5) * 0.35,
-            vy: (Math.random() - 0.5) * 0.35,
-            phase: Math.random() * Math.PI * 2
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: (Math.random() - 0.5) * 0.5,
+            amp: 60 + Math.random() * 90,       // visina brda
+            width: 110 + Math.random() * 130    // sigma (širina)
         });
     }
 }
@@ -1889,28 +1931,94 @@ function bgDrawRipples(t) {
     }
 }
 
-// topografska karta: koncentrični krugovi iz nekoliko središta koja se pomiču
+// topografska karta planine: zbroj gausovskih brda + konturne linije (marching squares)
+const TOPO_LEVELS = [15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 175, 200];
 function bgDrawTopo(t) {
     bgCtx.fillStyle = "#000";
     bgCtx.fillRect(0, 0, bgW, bgH);
 
-    bgCtx.strokeStyle = "rgba(255,255,255,0.22)";
-    bgCtx.lineWidth = 1;
-
+    // pomakni brda i odbij od rubova
     for (const p of bgTopoPeaks) {
         p.x += p.vx;
         p.y += p.vy;
-        if (p.x < 0 || p.x > bgW) p.vx *= -1;
-        if (p.y < 0 || p.y > bgH) p.vy *= -1;
+        if (p.x < -p.width || p.x > bgW + p.width) p.vx *= -1;
+        if (p.y < -p.width || p.y > bgH + p.width) p.vy *= -1;
+    }
 
-        const ringCount = 10;
-        for (let r = 1; r <= ringCount; r++) {
-            // radiusi lagano dišu s vremenom da izgleda kao žive konture
-            const radius = r * 42 + Math.sin(t * 0.4 + p.phase + r * 0.25) * 7;
-            bgCtx.beginPath();
-            bgCtx.arc(p.x, p.y, radius, 0, Math.PI * 2);
-            bgCtx.stroke();
+    // predizračunaj elevaciju u točkama grida
+    const step = 14;
+    const cols = Math.ceil(bgW / step);
+    const rows = Math.ceil(bgH / step);
+    const gridW = cols + 1;
+    const gridH = rows + 1;
+    const elev = new Float32Array(gridW * gridH);
+    for (let j = 0; j < gridH; j++) {
+        const py = j * step;
+        for (let i = 0; i < gridW; i++) {
+            const px = i * step;
+            let e = 0;
+            for (const m of bgTopoPeaks) {
+                const dx = px - m.x;
+                const dy = py - m.y;
+                const w2 = m.width * m.width;
+                e += m.amp * Math.exp(-(dx * dx + dy * dy) / (2 * w2));
+            }
+            elev[j * gridW + i] = e;
         }
+    }
+
+    // konturne linije za nekoliko nivoa (marching squares)
+    bgCtx.strokeStyle = "rgba(255, 255, 255, 0.32)";
+    bgCtx.lineWidth = 1;
+    for (const L of TOPO_LEVELS) {
+        bgCtx.beginPath();
+        for (let j = 0; j < rows; j++) {
+            const j0 = j * gridW;
+            const j1 = (j + 1) * gridW;
+            const y0 = j * step;
+            const y1 = y0 + step;
+            for (let i = 0; i < cols; i++) {
+                const e00 = elev[j0 + i];
+                const e10 = elev[j0 + i + 1];
+                const e01 = elev[j1 + i];
+                const e11 = elev[j1 + i + 1];
+                let idx = 0;
+                if (e00 > L) idx |= 1;
+                if (e10 > L) idx |= 2;
+                if (e11 > L) idx |= 4;
+                if (e01 > L) idx |= 8;
+                if (idx === 0 || idx === 15) continue;
+
+                const x0 = i * step;
+                const x1 = x0 + step;
+                const tx = x0 + step * (L - e00) / (e10 - e00);
+                const ry = y0 + step * (L - e10) / (e11 - e10);
+                const bx = x0 + step * (L - e01) / (e11 - e01);
+                const ly = y0 + step * (L - e00) / (e01 - e00);
+
+                switch (idx) {
+                    case 1: case 14:
+                        bgCtx.moveTo(tx, y0); bgCtx.lineTo(x0, ly); break;
+                    case 2: case 13:
+                        bgCtx.moveTo(tx, y0); bgCtx.lineTo(x1, ry); break;
+                    case 3: case 12:
+                        bgCtx.moveTo(x0, ly); bgCtx.lineTo(x1, ry); break;
+                    case 4: case 11:
+                        bgCtx.moveTo(x1, ry); bgCtx.lineTo(bx, y1); break;
+                    case 5:
+                        bgCtx.moveTo(tx, y0); bgCtx.lineTo(x0, ly);
+                        bgCtx.moveTo(x1, ry); bgCtx.lineTo(bx, y1); break;
+                    case 6: case 9:
+                        bgCtx.moveTo(tx, y0); bgCtx.lineTo(bx, y1); break;
+                    case 7: case 8:
+                        bgCtx.moveTo(x0, ly); bgCtx.lineTo(bx, y1); break;
+                    case 10:
+                        bgCtx.moveTo(tx, y0); bgCtx.lineTo(x1, ry);
+                        bgCtx.moveTo(x0, ly); bgCtx.lineTo(bx, y1); break;
+                }
+            }
+        }
+        bgCtx.stroke();
     }
 }
 

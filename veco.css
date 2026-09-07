@@ -494,15 +494,79 @@ h3 {
 .power-remove { --pw: #ef4444; background: #ef4444; }
 .power-fill   { --pw: #3b82f6; background: #3b82f6; }
 
-/* ===== Game Over ===== */
+/* ===== Tutorial ekran ===== */
+.tutorial-box {
+    max-width: 520px;
+    text-align: left;
+}
+
+.tutorial-box h2 {
+    text-align: center;
+    color: #22c55e;
+}
+
+.tutorial-box h3 {
+    color: #fbbf24;
+    margin: 8px 0 10px;
+    text-align: center;
+    font-size: 22px;
+}
+
+.tut-slide p {
+    margin: 8px 0;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.tut-slide .tut-small {
+    font-size: 13px;
+    color: #9ca3af;
+    margin-top: 12px;
+}
+
+.tut-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+
+.tut-nav .tut-progress {
+    font-size: 13px;
+    color: #9ca3af;
+    margin-right: 8px;
+    letter-spacing: 1px;
+}
+
+.tutorial-box .tut-nav button {
+    display: inline-block;
+    width: auto;
+    margin: 0;
+    padding: 10px 20px;
+    font-size: 15px;
+}
+
+.tutorial-box .tut-nav button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* ===== Overlay ekrani (Game Over, izbornici) ===== */
 .overlay {
     display: none;
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.75);
     justify-content: center;
-    align-items: center;
+    /* "safe center" -> centrira kad stane, poravna na vrh kad je viši od ekrana */
+    align-items: safe center;
     z-index: 10;
+    overflow-y: auto;
+    padding: 20px 0;
+    -webkit-overflow-scrolling: touch;
 }
 
 .overlay.show {

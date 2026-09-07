@@ -144,6 +144,47 @@
     </div>
 </div>
 
+<!-- Tutorial (prije svake igre) -->
+<div class="overlay" id="screen-tutorial">
+    <div class="overlay-box tutorial-box">
+        <h2>How to play</h2>
+        <div class="tutorial-slides" id="tutorialSlides">
+            <div class="tut-slide">
+                <h3>Goal</h3>
+                <p>Fill big squares with the <b>same color</b> to clear them and score points. Drag pieces from the <b>Next</b> area or <b>Storage</b> onto the board — drop anywhere inside a square and it auto-places into the first free field.</p>
+            </div>
+            <div class="tut-slide" hidden>
+                <h3>Storage</h3>
+                <p>You have <b>6 storage slots</b> in the left panel. Drag any piece into an empty slot to save it for later — useful when the current piece doesn't fit anywhere yet. You can also drag a stored piece back onto the board.</p>
+            </div>
+            <div class="tut-slide" hidden>
+                <h3>White joker 👑</h3>
+                <p>White pieces (with an upside-down crown) are <b>jokers</b> — they match ANY color. Fill a whole square with 4 jokers for a massive <b>+100 bonus</b> and a full-screen flash!</p>
+            </div>
+            <div class="tut-slide" hidden>
+                <h3>Powers</h3>
+                <p>Occasionally special tiles appear next to normal pieces:<br>
+                💧 turn a field into a joker<br>
+                <b>+</b> add the missing color into an empty field<br>
+                <b>–</b> remove a color from a field<br>
+                <b>★</b> fill the whole square with its color</p>
+                <p class="tut-small">The droplet also works on pieces in Storage — turns them into jokers.</p>
+            </div>
+            <div class="tut-slide" hidden>
+                <h3>Combos, levels &amp; modes</h3>
+                <p>Clearing squares back-to-back builds a <b>combo bonus</b> that doubles: +4, +8, +16, +32... Each level unlocks a new color, and the background changes.</p>
+                <p>Try <b>HEX</b> (hexagons with 6 fields) or <b>Time Race</b> (blitz mode with countdown timer, +5s per cleared square) from the main menu.</p>
+            </div>
+        </div>
+        <div class="tut-nav">
+            <span class="tut-progress"><span id="tutStep">1</span> / <span id="tutTotal">5</span></span>
+            <button id="btnTutPrev">Back</button>
+            <button id="btnTutNext">Next</button>
+            <button id="btnTutSkip" class="btn-secondary">Skip</button>
+        </div>
+    </div>
+</div>
+
 <!-- Pause (in-game) -->
 <div class="overlay" id="screen-pause">
     <div class="overlay-box">
