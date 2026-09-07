@@ -532,19 +532,31 @@ h3 {
     margin-bottom: 16px;
 }
 
-/* animirana slova naslova Blockade */
-.overlay-box .menu-title span {
+/* animirana slova naslova Blockade (i u glavnom izborniku i u lijevom panelu) */
+.game-title {
+    text-align: center;
+}
+.overlay-box .menu-title span,
+.game-title span {
     display: inline-block;
     animation: titleWave 3.6s ease-in-out infinite;
 }
-.overlay-box .menu-title span:nth-child(1) { animation-delay: 0s; }
-.overlay-box .menu-title span:nth-child(2) { animation-delay: 0.15s; }
-.overlay-box .menu-title span:nth-child(3) { animation-delay: 0.30s; }
-.overlay-box .menu-title span:nth-child(4) { animation-delay: 0.45s; }
-.overlay-box .menu-title span:nth-child(5) { animation-delay: 0.60s; }
-.overlay-box .menu-title span:nth-child(6) { animation-delay: 0.75s; }
-.overlay-box .menu-title span:nth-child(7) { animation-delay: 0.90s; }
-.overlay-box .menu-title span:nth-child(8) { animation-delay: 1.05s; }
+.overlay-box .menu-title span:nth-child(1),
+.game-title span:nth-child(1) { animation-delay: 0s; }
+.overlay-box .menu-title span:nth-child(2),
+.game-title span:nth-child(2) { animation-delay: 0.15s; }
+.overlay-box .menu-title span:nth-child(3),
+.game-title span:nth-child(3) { animation-delay: 0.30s; }
+.overlay-box .menu-title span:nth-child(4),
+.game-title span:nth-child(4) { animation-delay: 0.45s; }
+.overlay-box .menu-title span:nth-child(5),
+.game-title span:nth-child(5) { animation-delay: 0.60s; }
+.overlay-box .menu-title span:nth-child(6),
+.game-title span:nth-child(6) { animation-delay: 0.75s; }
+.overlay-box .menu-title span:nth-child(7),
+.game-title span:nth-child(7) { animation-delay: 0.90s; }
+.overlay-box .menu-title span:nth-child(8),
+.game-title span:nth-child(8) { animation-delay: 1.05s; }
 
 @keyframes titleWave {
     0%, 100% { color: #ef4444; transform: translateY(0); }
