@@ -152,11 +152,11 @@ h3 {
     justify-content: center;
 }
 
-/* na dodirnim uređajima: slot i vizual iste veličine kao dolazeći kvadratić */
+/* na dodirnim uređajima: slot točno iste veličine kao dolazeći kvadratić */
 @media (pointer: coarse) {
     .slot {
-        width: 78px;
-        height: 78px;
+        width: 70px;
+        height: 70px;
     }
 }
 
