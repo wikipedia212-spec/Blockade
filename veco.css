@@ -15,9 +15,13 @@ body {
     touch-action: manipulation;
 }
 
-/* U fullscreenu nema scrollbarova (game se transformom scale-a i offset-a) */
+/* U fullscreenu: bez scrollbarova, bez pinch-zooma, bez pan-scrolla */
 body.fs {
     overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: none;
+    position: fixed;
+    inset: 0;
 }
 
 /* ===== Prompt za rotaciju (portret na mobilnim ekranima) ===== */
