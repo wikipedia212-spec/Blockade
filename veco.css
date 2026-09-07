@@ -157,6 +157,14 @@ h3 {
     .slot {
         width: 70px;
         height: 70px;
+        box-sizing: border-box;   /* uključi border u 70px total */
+    }
+    /* pomakni cijeli game niže da gumbi za glazbu ne prekrivaju gornji red */
+    body {
+        align-items: flex-start;
+    }
+    .game {
+        margin-top: 80px;
     }
 }
 
