@@ -1458,7 +1458,9 @@ function updateFullscreenBtn() {
 function fitFullscreen() {
     const gameEl = document.querySelector(".game");
     if (!gameEl) return;
-    if (isFullscreen()) {
+    const fs = isFullscreen();
+    document.body.classList.toggle("fs", fs);   // sakrij body scroll u fullscreenu
+    if (fs) {
         gameEl.style.transform = "none";
         gameEl.style.transformOrigin = "center center";
         // izmjeri prirodnu veličinu (bez transformacije)
@@ -1467,8 +1469,10 @@ function fitFullscreen() {
         const h = gameEl.offsetHeight || 1;
         // fit-inside: skaliraj da stane u oba dimenzija (bez rezanja)
         const scale = Math.min(window.innerWidth / w, window.innerHeight / h);
-        // primjeni samo ako povećava (< 1 već brauser sam smanjuje)
-        gameEl.style.transform = "scale(" + scale.toFixed(4) + ")";
+        // U HEX modu pomakni sve desno da bolje sjedne u fullscreen
+        const isHex = boardDiv.classList.contains("hex");
+        const shiftX = isHex ? 90 : 0;
+        gameEl.style.transform = "translateX(" + shiftX + "px) scale(" + scale.toFixed(4) + ")";
     } else {
         gameEl.style.transform = "";
     }
