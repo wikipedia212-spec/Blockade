@@ -394,7 +394,8 @@ function renderStorage() {
         slot.className = "slot";
 
         if (item) {
-            const vis = makeVisual(item, 60);
+            const isTouch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+            const vis = makeVisual(item, isTouch ? 80 : 60);
             if (!gameOver) makeDraggable(vis, { from: "storage", index: index });
             slot.appendChild(vis);
         }

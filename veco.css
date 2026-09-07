@@ -152,6 +152,17 @@ h3 {
     justify-content: center;
 }
 
+/* na dodirnim uređajima: veći slotovi u 2 stupca radi lakšeg drag-a */
+@media (pointer: coarse) {
+    .storage {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .slot {
+        width: 90px;
+        height: 90px;
+    }
+}
+
 /* ===== Vizual predmeta (boja / moć) ===== */
 .vis-color {
     border-radius: 10px;
