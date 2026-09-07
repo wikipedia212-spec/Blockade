@@ -152,14 +152,11 @@ h3 {
     justify-content: center;
 }
 
-/* na dodirnim uređajima: veći slotovi u 2 stupca radi lakšeg drag-a */
+/* na dodirnim uređajima: slot i vizual iste veličine kao dolazeći kvadratić */
 @media (pointer: coarse) {
-    .storage {
-        grid-template-columns: repeat(2, 1fr);
-    }
     .slot {
-        width: 90px;
-        height: 90px;
+        width: 78px;
+        height: 78px;
     }
 }
 
