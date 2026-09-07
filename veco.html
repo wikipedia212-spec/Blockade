@@ -23,21 +23,24 @@
         <h3>Storage</h3>
         <div class="storage" id="storage"></div>
 
-        <div class="info">
-            Level: <span id="level">1</span><br>
-            Score: <span id="score">0</span>
-        </div>
-
-        <h3>To next level</h3>
-        <div class="collector" id="collector">
-            <span id="remaining">10</span>
-            <span class="collector-sub">left</span>
-        </div>
-
     </div>
 
     <div class="board-wrap">
         <div class="board" id="board"></div>
+        <div class="board-info">
+            <div class="binfo-item">
+                <div class="binfo-label">Level</div>
+                <div class="binfo-value" id="level">1</div>
+            </div>
+            <div class="binfo-item">
+                <div class="binfo-label">Score</div>
+                <div class="binfo-value" id="score">0</div>
+            </div>
+            <div class="binfo-item" id="collector">
+                <div class="binfo-label">To next level</div>
+                <div class="binfo-value binfo-remaining" id="remaining">10</div>
+            </div>
+        </div>
         <div id="raceHud" class="race-hud" hidden>
             <span id="raceTime">00:00.0</span>
         </div>
@@ -59,7 +62,7 @@
 <!-- Glavni izbornik -->
 <div class="overlay" id="screen-main">
     <div class="overlay-box">
-        <h2 class="menu-title">Blockade</h2>
+        <h2 class="menu-title"><span>B</span><span>l</span><span>o</span><span>c</span><span>k</span><span>a</span><span>d</span><span>e</span></h2>
         <p class="mode-label">Game mode:</p>
         <div class="mode-row">
             <button class="mode-btn" data-mode="classic">Classic</button>

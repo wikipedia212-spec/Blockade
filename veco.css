@@ -320,43 +320,44 @@ h3 {
     opacity: 0.8;
 }
 
-.info {
-    margin-top: 20px;
-    font-size: 22px;
+/* ===== Board info red (Level | Score | To Next) ispod ploče ===== */
+.board-info {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-top: 18px;
+    padding: 4px 8px;
     text-align: center;
 }
 
-/* da "poskok" (scale) radi na bodovima */
-#score {
-    display: inline-block;
-}
-
-/* ===== Kutija: preostali kvadrati do kraja levela (boje odlete ovamo) ===== */
-.collector {
-    margin-top: 8px;
-    height: 70px;
-    border: 3px solid #555;
-    border-radius: 12px;
-    background: #1f2937;
+.binfo-item {
     display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 6px;
-    font-weight: bold;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 90px;
 }
 
-.collector #remaining {
-    font-size: 34px;
-    color: #22c55e;
-    display: inline-block;
-}
-
-.collector .collector-sub {
-    font-size: 13px;
+.binfo-label {
+    font-size: 12px;
     color: #9ca3af;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.2px;
+    line-height: 1;
 }
+
+.binfo-value {
+    font-size: 30px;
+    color: #fff;
+    font-weight: bold;
+    line-height: 1;
+    display: inline-block;    /* omogući "poskok" (scale) na bodovima */
+}
+
+.binfo-remaining {
+    color: #22c55e;
+}
+
 
 /* leteća pločica boje (animacija prema kutiji) */
 .fly-tile {
@@ -529,6 +530,29 @@ h3 {
 .overlay-box .menu-title {
     font-size: 46px;
     margin-bottom: 16px;
+}
+
+/* animirana slova naslova Blockade */
+.overlay-box .menu-title span {
+    display: inline-block;
+    animation: titleWave 3.6s ease-in-out infinite;
+}
+.overlay-box .menu-title span:nth-child(1) { animation-delay: 0s; }
+.overlay-box .menu-title span:nth-child(2) { animation-delay: 0.15s; }
+.overlay-box .menu-title span:nth-child(3) { animation-delay: 0.30s; }
+.overlay-box .menu-title span:nth-child(4) { animation-delay: 0.45s; }
+.overlay-box .menu-title span:nth-child(5) { animation-delay: 0.60s; }
+.overlay-box .menu-title span:nth-child(6) { animation-delay: 0.75s; }
+.overlay-box .menu-title span:nth-child(7) { animation-delay: 0.90s; }
+.overlay-box .menu-title span:nth-child(8) { animation-delay: 1.05s; }
+
+@keyframes titleWave {
+    0%, 100% { color: #ef4444; transform: translateY(0); }
+    17%      { color: #f97316; transform: translateY(-8px); }
+    33%      { color: #eab308; transform: translateY(0); }
+    50%      { color: #22c55e; transform: translateY(-8px); }
+    67%      { color: #3b82f6; transform: translateY(0); }
+    83%      { color: #a855f7; transform: translateY(-8px); }
 }
 
 /* prekidač načina igre (glavni izbornik) */
