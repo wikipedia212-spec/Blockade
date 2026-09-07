@@ -164,7 +164,7 @@ h3 {
         align-items: flex-start;
     }
     .game {
-        margin-top: 50px;
+        margin-top: 70px;   /* odmah ispod gumba glazbe (koji završavaju na y≈60) */
     }
 }
 

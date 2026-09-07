@@ -1463,7 +1463,9 @@ function fitFullscreen() {
     document.body.classList.toggle("fs", fs);   // sakrij body scroll u fullscreenu
     if (fs) {
         gameEl.style.transform = "none";
-        gameEl.style.transformOrigin = "center center";
+        // na dodiru: origin top da margin-top kontrolira vertikalnu poziciju
+        const isTouch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+        gameEl.style.transformOrigin = isTouch ? "center top" : "center center";
         // izmjeri prirodnu veličinu (bez transformacije)
         void gameEl.offsetHeight;
         const w = gameEl.offsetWidth || 1;
@@ -1476,6 +1478,7 @@ function fitFullscreen() {
         gameEl.style.transform = "translateX(" + shiftX + "px) scale(" + scale.toFixed(4) + ")";
     } else {
         gameEl.style.transform = "";
+        gameEl.style.transformOrigin = "";
     }
 }
 
