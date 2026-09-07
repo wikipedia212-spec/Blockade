@@ -142,10 +142,10 @@ h3 {
 }
 
 .slot {
-    width: 45px;
-    height: 45px;
+    width: 70px;
+    height: 70px;
     border: 2px dashed #777;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
     display: flex;
     align-items: center;
