@@ -482,10 +482,13 @@ h3 {
 }
 
 .joker-bonus .joker-text {
-    font-size: 64px;
+    font-size: clamp(32px, 11vw, 64px);
     font-weight: bold;
     color: #fbbf24;
     letter-spacing: 2px;
+    text-align: center;
+    padding: 0 16px;
+    white-space: nowrap;
     text-shadow:
         0 0 20px #fff,
         0 0 40px rgba(251, 191, 36, 0.8),
@@ -521,9 +524,11 @@ h3 {
     left: 50%;
     top: 55%;
     transform: translate(-50%, -50%);
-    font-size: 34px;
+    font-size: clamp(20px, 7vw, 34px);
     font-weight: bold;
     color: #fbbf24;
+    text-align: center;
+    white-space: nowrap;
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
     pointer-events: none;
     z-index: 60;
