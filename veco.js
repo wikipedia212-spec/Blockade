@@ -682,7 +682,7 @@ function pulse(el) {
     );
 }
 
-// Boje iz popunjenog polja "odlete" u kutiju za preostale kvadrate
+// Boje iz popunjenog polja se prvo rastrknu (eksplozija), pa tek onda odlete u kutiju
 function flyColorsToCollector(points) {
     const box = collectorBox.getBoundingClientRect();
     const targetX = box.left + box.width / 2;
@@ -705,20 +705,38 @@ function flyColorsToCollector(points) {
 
         document.body.appendChild(tile);
 
-        const dx = targetX - p.x;
-        const dy = targetY - p.y;
+        // Faza 1: rastrkaj se (eksplozija) u nasumičnom smjeru
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 22 + Math.random() * 28;
+        const scatterX = Math.cos(angle) * dist;
+        const scatterY = Math.sin(angle) * dist;
+        const scatterRotate = (Math.random() < 0.5 ? -1 : 1) * (30 + Math.random() * 60);
 
-        const anim = tile.animate(
+        const scatterAnim = tile.animate(
             [
-                { transform: "translate(0,0) scale(1)", opacity: 1 },
-                { transform: `translate(${dx}px, ${dy}px) scale(0.25)`, opacity: 0.5 }
+                { transform: "translate(0,0) scale(1) rotate(0deg)", opacity: 1 },
+                { transform: `translate(${scatterX}px, ${scatterY}px) scale(1.15) rotate(${scatterRotate}deg)`, opacity: 1 }
             ],
-            { duration: 500, easing: "cubic-bezier(0.5, 0, 0.75, 1)", delay: i * 50, fill: "forwards" }
+            { duration: 200, easing: "ease-out", delay: i * 40, fill: "forwards" }
         );
 
-        anim.onfinish = () => {
-            tile.remove();
-            pulse(collectorBox);
+        scatterAnim.onfinish = () => {
+            // Faza 2: iz rastrkane pozicije odleti u spremište
+            const dx = targetX - (p.x + scatterX);
+            const dy = targetY - (p.y + scatterY);
+
+            const flyAnim = tile.animate(
+                [
+                    { transform: `translate(${scatterX}px, ${scatterY}px) scale(1.15) rotate(${scatterRotate}deg)`, opacity: 1 },
+                    { transform: `translate(${scatterX + dx}px, ${scatterY + dy}px) scale(0.25) rotate(${scatterRotate + 720}deg)`, opacity: 0.5 }
+                ],
+                { duration: 550, easing: "cubic-bezier(0.5, 0, 0.75, 1)", fill: "forwards" }
+            );
+
+            flyAnim.onfinish = () => {
+                tile.remove();
+                pulse(collectorBox);
+            };
         };
     });
 }
@@ -742,13 +760,58 @@ function showTimeBonus() {
     pop.addEventListener("animationend", () => pop.remove());
 }
 
+// Animiraj outline velikog kvadrata u zadanoj boji: 3 pulsa (slabo, jače, najjače)
+function flashSquare(square, color) {
+    const el = square.element;
+    if (!el) return;
+    el.style.setProperty("--flash-color", color);
+    el.classList.remove("completed-flash");
+    void el.offsetWidth;   // reflow da se animacija restarta
+    el.classList.add("completed-flash");
+    setTimeout(() => el.classList.remove("completed-flash"), 600);
+}
+
+function hexToRgbString(hex) {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!m) return "255,255,255";
+    return parseInt(m[1], 16) + "," + parseInt(m[2], 16) + "," + parseInt(m[3], 16);
+}
+
+// Puls u boji koji se širi IZVAN kvadrata, sve dalje kako combo raste - uvijek centriran na kvadrat koji ga je napravio
+function spawnComboPulse(square, color, combo) {
+    const el = square.element;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const n = combo || 1;
+    const spread = Math.min(40 + (n - 1) * 35, 260);
+
+    const pulse = document.createElement("div");
+    pulse.className = "combo-pulse";
+    pulse.style.left = cx + "px";
+    pulse.style.top = cy + "px";
+    pulse.style.width = rect.width + "px";
+    pulse.style.height = rect.height + "px";
+    pulse.style.setProperty("--pulse-rgb", hexToRgbString(color));
+    pulse.style.setProperty("--pulse-spread", spread + "px");
+    document.body.appendChild(pulse);
+
+    let removed = false;
+    const done = () => { if (!removed) { removed = true; pulse.remove(); } };
+    pulse.addEventListener("animationend", done);
+    setTimeout(done, 800);
+}
+
 // Specijalni bljesak preko cijelog ekrana kad se polje popuni samim džokerima
+const JOKER_BOOM_WORDS = ["BOOM", "BAM", "POW", "WHAM"];
 function showJokerBonus() {
     const wrap = document.createElement("div");
     wrap.className = "joker-bonus";
     const text = document.createElement("div");
     text.className = "joker-text";
-    text.textContent = "JOKER BONUS  +100";
+    const word = JOKER_BOOM_WORDS[Math.floor(Math.random() * JOKER_BOOM_WORDS.length)];
+    text.textContent = word + "  +100";
     wrap.appendChild(text);
     document.body.appendChild(wrap);
     let removed = false;
@@ -777,9 +840,16 @@ function checkCompleted(square) {
     const same = square.cells.every(c => c === WHITE || c === real);
 
     if (same) {
+        // animiraj outline velikog kvadrata u boji koja je skupljena
+        flashSquare(square, real || WHITE);
+
         // combo: bonus se udvostručuje (x2 +4, x3 +8, x4 +16, x5 +32, ...)
         completedThisDrop = true;
         combo++;
+
+        // puls u boji koji se širi izvan kvadrata - sve veći kako combo raste, centriran na ovaj kvadrat
+        spawnComboPulse(square, real || WHITE, combo);
+
         const bonus = combo >= 2 ? 4 * Math.pow(2, combo - 2) : 0;
         // specijalni bonus: polje popunjeno isključivo džokerima -> 100 bodova
         const allJokers = square.cells.every(c => c === WHITE);
