@@ -687,7 +687,8 @@ function flyColorsToCollector(points) {
     const box = collectorBox.getBoundingClientRect();
     const targetX = box.left + box.width / 2;
     const targetY = box.top + box.height / 2;
-    const SIZE = 30;
+    const scale = currentBoardScale();
+    const SIZE = 30 * scale;
 
     points.forEach((p, i) => {
         const tile = document.createElement("div");
@@ -707,7 +708,7 @@ function flyColorsToCollector(points) {
 
         // Faza 1: rastrkaj se (eksplozija) u nasumičnom smjeru
         const angle = Math.random() * Math.PI * 2;
-        const dist = 22 + Math.random() * 28;
+        const dist = (22 + Math.random() * 28) * scale;
         const scatterX = Math.cos(angle) * dist;
         const scatterY = Math.sin(angle) * dist;
         const scatterRotate = (Math.random() < 0.5 ? -1 : 1) * (30 + Math.random() * 60);
@@ -777,6 +778,19 @@ function hexToRgbString(hex) {
     return parseInt(m[1], 16) + "," + parseInt(m[2], 16) + "," + parseInt(m[3], 16);
 }
 
+// Faktor kojim je kvadrat trenutno prikazan naspram svoje prirodne veličine
+// (fullscreen na mobitelu skalira cijeli .game preko transform: scale, pa svi
+// efekti u fiksnim pikselima moraju pratiti tu skalu da izgledaju isto na svakom ekranu)
+function currentBoardScale() {
+    const isHex = boardDiv.classList.contains("hex");
+    const baseline = isHex ? 150 : 120;
+    const sample = document.querySelector(".big-square");
+    if (!sample) return 1;
+    const w = sample.getBoundingClientRect().width;
+    if (!w) return 1;
+    return Math.min(Math.max(w / baseline, 0.35), 1.3);
+}
+
 // Puls u boji koji se širi IZVAN kvadrata, sve dalje kako combo raste - uvijek centriran na kvadrat koji ga je napravio
 function spawnComboPulse(square, color, combo) {
     const el = square.element;
@@ -785,7 +799,7 @@ function spawnComboPulse(square, color, combo) {
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     const n = combo || 1;
-    const spread = Math.min(40 + (n - 1) * 35, 260);
+    const spread = Math.min(40 + (n - 1) * 35, 260) * currentBoardScale();
 
     const pulse = document.createElement("div");
     pulse.className = "combo-pulse";
