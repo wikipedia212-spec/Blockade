@@ -690,28 +690,41 @@ function dropOnSlot(index) {
 
 // ===== LOGIKA POSTAVLJANJA =====
 // Bijela (#ffffff) je "džoker" i paše uz svaku boju.
-// Dual-boja (dvije boje na jednoj kockici) paše uz JEDNU od te dvije.
-// Prava boja kvadratića = prva konkretna (ne-bijela, ne-dual) boja u njemu (null ako je nema).
+// Prva konkretna boja ili dual-boja postavljena u kvadratić određuje što on prima:
+// - konkretna boja  -> kvadratić prima SAMO tu boju (+ bijelu, + dual koji je sadrži)
+// - dual-boja       -> kvadratić se "otvara" i prima OBJE njene boje (+ bijelu, + drugi dual koji dijeli jednu od njih)
+// dok je kvadratić prazan (sve null/bijelo), skup nije određen -> prima bilo što.
+function squareColorSet(square) {
+    for (let i = 0; i < square.cells.length; i++) {
+        const c = square.cells[i];
+        if (c === null || c === WHITE) continue;
+        if (isDualColor(c)) return dualParts(c);
+        return [c];
+    }
+    return null;
+}
+
+// "Prava" boja za prikaz (bljesak, puls, moći) - prva boja iz dopuštenog skupa.
 function squareRealColor(square) {
-    return square.cells.find(c => c !== null && c !== WHITE && !isDualColor(c)) || null;
+    const set = squareColorSet(square);
+    return set ? set[0] : null;
 }
 
-// Odgovara li vrijednost polja pravoj boji kvadratića (za provjeru dovršenosti)
-function colorMatchesReal(c, real) {
+// Odgovara li vrijednost polja dopuštenom skupu boja kvadratića (za provjeru dovršenosti)
+function colorMatchesSet(c, set) {
     if (c === WHITE) return true;
-    if (real === null) return true;   // ništa još ne određuje pravu boju (npr. sve bijelo/dual)
-    if (isDualColor(c)) return dualParts(c).indexOf(real) !== -1;
-    return c === real;
+    if (set === null) return true;   // ništa još nije određeno
+    if (isDualColor(c)) return dualParts(c).some(p => set.indexOf(p) !== -1);
+    return set.indexOf(c) !== -1;
 }
 
-// Može li se boja staviti u kvadratić: bijela uvijek, dual ako mu paše bilo koja od dvije, inače mora pašati s pravom bojom.
+// Može li se boja staviti u kvadratić prema trenutno dopuštenom skupu boja.
 function colorFitsSquare(square, color) {
     if (color === WHITE) return true;
-    const real = squareRealColor(square);
-    if (isDualColor(color)) {
-        return real === null || dualParts(color).indexOf(real) !== -1;
-    }
-    return real === null || real === color;
+    const set = squareColorSet(square);
+    if (set === null) return true;
+    if (isDualColor(color)) return dualParts(color).some(p => set.indexOf(p) !== -1);
+    return set.indexOf(color) !== -1;
 }
 
 // Sve "try*" funkcije vrate true ako su promijenile ploču (uspješan potez).
@@ -952,8 +965,9 @@ function checkCompleted(square) {
     if (!full) return;
 
     // popunjen je ako su sva polja ista prava boja ili bijeli džoker
-    const real = squareRealColor(square);
-    const same = square.cells.every(c => colorMatchesReal(c, real));
+    const colorSet = squareColorSet(square);
+    const real = colorSet ? colorSet[0] : null;
+    const same = square.cells.every(c => colorMatchesSet(c, colorSet));
 
     if (same) {
         // animiraj outline velikog kvadrata u boji koja je skupljena
