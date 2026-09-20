@@ -23,15 +23,29 @@ const ALL_COLORS = [
 
 const WHITE = "#ffffff";
 
-// Postavke težine: koliko je boja aktivno na 1. nivou + šansa za moći
+// Dual-boja: kockica s dvije boje na sebi, paše u kvadratić koji traži JEDNU od te dvije.
+// Predstavljena kao string "dual:#boja1:#boja2" da ostane obična vrijednost polja/predmeta.
+function makeDualColor(c1, c2) { return "dual:" + c1 + ":" + c2; }
+function isDualColor(c) { return typeof c === "string" && c.slice(0, 5) === "dual:"; }
+function dualParts(c) { return c.slice(5).split(":"); }
+
+// Parovi boja koji se otključavaju jedan po jedan svakim nivoom (susjedne boje u ALL_COLORS)
+const DUAL_PAIRS = [];
+for (let i = 0; i < ALL_COLORS.length - 1; i++) {
+    DUAL_PAIRS.push([ALL_COLORS[i], ALL_COLORS[i + 1]]);
+}
+let activeDualColors = [];   // dual parovi otključani do trenutnog nivoa
+
+// Postavke težine: koliko je boja aktivno na 1. nivou + šansa za moći/dual-boje
 const DIFFICULTIES = {
-    easy:   { startColors: 6,  powerChance: 0.08, label: "Easy" },
-    normal: { startColors: 9,  powerChance: 0.05, label: "Normal" },
-    hard:   { startColors: 12, powerChance: 0.03, label: "Hard" }
+    easy:   { startColors: 6,  powerChance: 0.08, dualChance: 0.05,  label: "Easy" },
+    normal: { startColors: 9,  powerChance: 0.05, dualChance: 0.035, label: "Normal" },
+    hard:   { startColors: 12, powerChance: 0.03, dualChance: 0.02,  label: "Hard" }
 };
 let difficulty = "normal";
 let startColors = DIFFICULTIES.normal.startColors;
 let powerChance = DIFFICULTIES.normal.powerChance;
+let dualChance = DIFFICULTIES.normal.dualChance;
 let cellTheme = "patterns";   // uzorak na kvadratićima: "plain" | "patterns"
 let showNumbers = true;       // prikaz brojeva na bojama (pomoć za daltoniste)
 let musicOn = true;           // sviranje pozadinske glazbe
@@ -146,6 +160,10 @@ function targetForLevel(lvl) {
 function rebuildActiveColors() {
     const count = Math.min(startColors + (level - 1), ALL_COLORS.length);
     activeColors = ALL_COLORS.slice(0, count).concat([WHITE]);
+
+    // jedna nova dual-boja otključa se svakim nivoom (od 2. nivoa nadalje)
+    const dualCount = Math.min(Math.max(level - 1, 0), DUAL_PAIRS.length);
+    activeDualColors = DUAL_PAIRS.slice(0, dualCount);
 }
 
 function updateHud() {
@@ -164,6 +182,9 @@ function generateNext() {
     if (Math.random() < powerChance) {
         const power = POWER_KEYS[Math.floor(Math.random() * POWER_KEYS.length)];
         incomingItem = { kind: "power", power: power };
+    } else if (activeDualColors.length > 0 && Math.random() < dualChance) {
+        const pair = activeDualColors[Math.floor(Math.random() * activeDualColors.length)];
+        incomingItem = { kind: "color", color: makeDualColor(pair[0], pair[1]) };
     } else {
         incomingItem = { kind: "color", color: randomColor() };
     }
@@ -191,6 +212,15 @@ function numberLabel(color, size) {
     span.textContent = colorNumber(color);
     span.style.color = isLightColor(color) ? "#111" : "#fff";
     span.style.fontSize = (size * 0.42) + "px";
+    return span;
+}
+
+function dualNumberLabel(color, size) {
+    const parts = dualParts(color);
+    const span = document.createElement("span");
+    span.className = "color-num dual-num";
+    span.textContent = colorNumber(parts[0]) + "/" + colorNumber(parts[1]);
+    span.style.fontSize = (size * 0.3) + "px";
     return span;
 }
 
@@ -246,6 +276,16 @@ const PATTERNS = [
 
 // Oboji element + uzorak specifičan za tu boju (u malo drugačijoj nijansi)
 function applyCellPattern(el, color) {
+    if (isDualColor(color)) {
+        const parts = dualParts(color);
+        el.style.backgroundColor = parts[0];
+        el.style.backgroundImage =
+            "linear-gradient(135deg, " + parts[0] + " 0%, " + parts[0] + " 49%, " + parts[1] + " 51%, " + parts[1] + " 100%)";
+        el.style.backgroundPosition = "0 0";
+        el.style.backgroundSize = "";
+        return;
+    }
+
     el.style.backgroundColor = color;
     el.style.backgroundPosition = "0 0";
 
@@ -278,6 +318,11 @@ function makeVisual(item, size) {
         if (item.color === WHITE) {
             el.classList.add("is-joker");
             el.innerHTML = jokerSvg();
+        } else if (isDualColor(item.color)) {
+            if (showNumbers) {
+                el.classList.add("has-num");
+                el.appendChild(dualNumberLabel(item.color, size));
+            }
         } else if (showNumbers) {
             el.classList.add("has-num");
             el.appendChild(numberLabel(item.color, size));
@@ -507,6 +552,16 @@ function renderCell(cell, c) {
         cell.innerHTML = hex
             ? '<span class="wedge-mark" style="' + pos + '">' + jokerSvg() + '</span>'
             : jokerSvg();
+    } else if (isDualColor(c)) {
+        if (showNumbers) {
+            const parts = dualParts(c);
+            const fs = hex ? 14 : 18;
+            cell.innerHTML =
+                '<span class="color-num dual-num" style="' + pos + "font-size:" + fs + 'px">' +
+                colorNumber(parts[0]) + "/" + colorNumber(parts[1]) + '</span>';
+        } else {
+            cell.innerHTML = "";
+        }
     } else if (showNumbers) {
         const txt = isLightColor(c) ? "#111" : "#fff";
         const fs = hex ? 16 : 22;
@@ -600,15 +655,27 @@ function dropOnSlot(index) {
 
 // ===== LOGIKA POSTAVLJANJA =====
 // Bijela (#ffffff) je "džoker" i paše uz svaku boju.
-// Prava boja kvadratića = prva ne-bijela boja u njemu (null ako su sve bijele/prazne).
+// Dual-boja (dvije boje na jednoj kockici) paše uz JEDNU od te dvije.
+// Prava boja kvadratića = prva konkretna (ne-bijela, ne-dual) boja u njemu (null ako je nema).
 function squareRealColor(square) {
-    return square.cells.find(c => c !== null && c !== WHITE) || null;
+    return square.cells.find(c => c !== null && c !== WHITE && !isDualColor(c)) || null;
 }
 
-// Može li se boja staviti u kvadratić: bijela uvijek, inače mora pašati s pravom bojom.
+// Odgovara li vrijednost polja pravoj boji kvadratića (za provjeru dovršenosti)
+function colorMatchesReal(c, real) {
+    if (c === WHITE) return true;
+    if (real === null) return true;   // ništa još ne određuje pravu boju (npr. sve bijelo/dual)
+    if (isDualColor(c)) return dualParts(c).indexOf(real) !== -1;
+    return c === real;
+}
+
+// Može li se boja staviti u kvadratić: bijela uvijek, dual ako mu paše bilo koja od dvije, inače mora pašati s pravom bojom.
 function colorFitsSquare(square, color) {
     if (color === WHITE) return true;
     const real = squareRealColor(square);
+    if (isDualColor(color)) {
+        return real === null || dualParts(color).indexOf(real) !== -1;
+    }
     return real === null || real === color;
 }
 
@@ -851,7 +918,7 @@ function checkCompleted(square) {
 
     // popunjen je ako su sva polja ista prava boja ili bijeli džoker
     const real = squareRealColor(square);
-    const same = square.cells.every(c => c === WHITE || c === real);
+    const same = square.cells.every(c => colorMatchesReal(c, real));
 
     if (same) {
         // animiraj outline velikog kvadrata u boji koja je skupljena
@@ -1129,6 +1196,7 @@ function setDifficulty(d, save) {
     difficulty = d;
     startColors = DIFFICULTIES[d].startColors;
     powerChance = DIFFICULTIES[d].powerChance;
+    dualChance = DIFFICULTIES[d].dualChance;
     if (save) {
         try { localStorage.setItem("blockade_difficulty", d); } catch (e) {}
     }

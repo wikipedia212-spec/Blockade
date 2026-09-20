@@ -190,6 +190,14 @@ h3 {
     user-select: none;
 }
 
+/* broj na dual-boji (dvije boje na kockici) - bijeli s tamnim obrisom, čitljiv na oba dijela */
+.color-num.dual-num {
+    color: #fff;
+    text-shadow:
+        0 0 3px rgba(0, 0, 0, 0.9),
+        0 0 6px rgba(0, 0, 0, 0.7);
+}
+
 .joker-mark {
     width: 72%;
     height: 72%;
