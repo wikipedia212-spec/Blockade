@@ -243,46 +243,85 @@ function tileBg(inner) {
     return { image: "url(\"data:image/svg+xml," + encodeURIComponent(svg) + "\")", size: TILE + "px " + TILE + "px" };
 }
 
+// Svaki uzorak vraća SAMO unutarnji SVG markup (bez omota) da se može ponovno
+// iskoristiti i za dual-boje (dvije polovice, svaka sa svojim uzorkom).
 const PATTERNS = [
     // cvijet / četverolist
-    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><circle cx='13' cy='6' r='5'/><circle cx='13' cy='20' r='5'/><circle cx='6' cy='13' r='5'/><circle cx='20' cy='13' r='5'/></g>"),
+    (s) => "<g fill='none' stroke='" + s + "' stroke-width='2'><circle cx='13' cy='6' r='5'/><circle cx='13' cy='20' r='5'/><circle cx='6' cy='13' r='5'/><circle cx='20' cy='13' r='5'/></g>",
     // koncentrični krugovi
-    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><circle cx='13' cy='13' r='3.5'/><circle cx='13' cy='13' r='8.5'/></g>"),
+    (s) => "<g fill='none' stroke='" + s + "' stroke-width='2'><circle cx='13' cy='13' r='3.5'/><circle cx='13' cy='13' r='8.5'/></g>",
     // valoviti potezi
-    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M1 8 C 7 1, 12 15, 18 8 S 25 1, 30 8'/><path d='M1 19 C 7 12, 12 26, 18 19 S 25 12, 30 19'/></g>"),
+    (s) => "<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M1 8 C 7 1, 12 15, 18 8 S 25 1, 30 8'/><path d='M1 19 C 7 12, 12 26, 18 19 S 25 12, 30 19'/></g>",
     // vrtuljak (latice)
-    (s) => tileBg("<g fill='" + s + "'><path d='M13 13 Q 12 3 19 4 Q 14 7 13 13'/><path d='M13 13 Q 23 12 22 19 Q 19 14 13 13'/><path d='M13 13 Q 14 23 7 22 Q 12 19 13 13'/><path d='M13 13 Q 3 14 4 7 Q 7 12 13 13'/></g>"),
+    (s) => "<g fill='" + s + "'><path d='M13 13 Q 12 3 19 4 Q 14 7 13 13'/><path d='M13 13 Q 23 12 22 19 Q 19 14 13 13'/><path d='M13 13 Q 14 23 7 22 Q 12 19 13 13'/><path d='M13 13 Q 3 14 4 7 Q 7 12 13 13'/></g>",
     // zvijezda
-    (s) => tileBg("<path d='M13 2 L15.5 10.5 L24 13 L15.5 15.5 L13 24 L10.5 15.5 L2 13 L10.5 10.5 Z' fill='" + s + "'/>"),
+    (s) => "<path d='M13 2 L15.5 10.5 L24 13 L15.5 15.5 L13 24 L10.5 15.5 L2 13 L10.5 10.5 Z' fill='" + s + "'/>",
     // latica / oko
-    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M13 4 C 21 8, 21 18, 13 22 C 5 18, 5 8, 13 4 Z'/><circle cx='13' cy='13' r='1.6' fill='" + s + "'/></g>"),
+    (s) => "<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M13 4 C 21 8, 21 18, 13 22 C 5 18, 5 8, 13 4 Z'/><circle cx='13' cy='13' r='1.6' fill='" + s + "'/></g>",
     // riblje ljuske (lukovi)
-    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='1.8'><path d='M0 0 A 13 13 0 0 1 26 0'/><path d='M0 26 A 13 13 0 0 1 26 26'/><path d='M-13 13 A 13 13 0 0 1 13 13'/><path d='M13 13 A 13 13 0 0 1 39 13'/></g>"),
+    (s) => "<g fill='none' stroke='" + s + "' stroke-width='1.8'><path d='M0 0 A 13 13 0 0 1 26 0'/><path d='M0 26 A 13 13 0 0 1 26 26'/><path d='M-13 13 A 13 13 0 0 1 13 13'/><path d='M13 13 A 13 13 0 0 1 39 13'/></g>",
     // spirala
-    (s) => tileBg("<path d='M13 13 Q 13 8 18 8 Q 23 8 23 14 Q 23 22 14 22 Q 4 22 4 11' fill='none' stroke='" + s + "' stroke-width='2'/>"),
+    (s) => "<path d='M13 13 Q 13 8 18 8 Q 23 8 23 14 Q 23 22 14 22 Q 4 22 4 11' fill='none' stroke='" + s + "' stroke-width='2'/>",
     // isprepletene petlje (beskonačno)
-    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><circle cx='8' cy='13' r='5'/><circle cx='18' cy='13' r='5'/></g>"),
+    (s) => "<g fill='none' stroke='" + s + "' stroke-width='2'><circle cx='8' cy='13' r='5'/><circle cx='18' cy='13' r='5'/></g>",
     // kapljica / vrtlog
-    (s) => tileBg("<path d='M13 3 C 13 3 21 11 21 16 A 8 8 0 0 1 5 16 C 5 11 13 3 13 3 Z' fill='none' stroke='" + s + "' stroke-width='2'/>"),
+    (s) => "<path d='M13 3 C 13 3 21 11 21 16 A 8 8 0 0 1 5 16 C 5 11 13 3 13 3 Z' fill='none' stroke='" + s + "' stroke-width='2'/>",
     // mreža lukova (val)
-    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M0 20 Q 6.5 8 13 20 T 26 20'/><path d='M0 9 Q 6.5 -3 13 9 T 26 9'/></g>"),
+    (s) => "<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M0 20 Q 6.5 8 13 20 T 26 20'/><path d='M0 9 Q 6.5 -3 13 9 T 26 9'/></g>",
     // trolist
-    (s) => tileBg("<g fill='" + s + "'><circle cx='13' cy='7' r='4'/><circle cx='8' cy='17' r='4'/><circle cx='18' cy='17' r='4'/></g>"),
+    (s) => "<g fill='" + s + "'><circle cx='13' cy='7' r='4'/><circle cx='8' cy='17' r='4'/><circle cx='18' cy='17' r='4'/></g>",
     // romb sa zrakama
-    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M13 3 L23 13 L13 23 L3 13 Z'/><path d='M13 8 L18 13 L13 18 L8 13 Z'/></g>"),
+    (s) => "<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M13 3 L23 13 L13 23 L3 13 Z'/><path d='M13 8 L18 13 L13 18 L8 13 Z'/></g>",
     // polukrugovi
-    (s) => tileBg("<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M4 4 A 9 9 0 0 1 22 4'/><path d='M4 22 A 9 9 0 0 0 22 22'/></g>")
+    (s) => "<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M4 4 A 9 9 0 0 1 22 4'/><path d='M4 22 A 9 9 0 0 0 22 22'/></g>"
 ];
+
+function patternForColor(color) {
+    const idx = ALL_COLORS.indexOf(color);
+    return PATTERNS[(idx >= 0 ? idx : 0) % PATTERNS.length];
+}
+
+// nijansa uzorka: tamnija na svijetlim bojama, svjetlija na tamnima
+function patternShade(color) {
+    return isLightColor(color) ? shade(color, -0.16) : shade(color, 0.22);
+}
+
+// Pozadina dual-boje: dijagonalno podijeljena (kao boja1/boja2), svaka polovica
+// ispunjena SVG <pattern>-om s uzorkom i nijansom TE boje, spojeno u jednu sliku.
+function dualPatternBg(colorA, colorB) {
+    const innerA = patternForColor(colorA)(patternShade(colorA));
+    const innerB = patternForColor(colorB)(patternShade(colorB));
+
+    const svg =
+        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'>" +
+        "<defs>" +
+        "<pattern id='pA' patternUnits='objectBoundingBox' width='0.26' height='0.26' viewBox='0 0 26 26'>" +
+        "<rect width='26' height='26' fill='" + colorA + "'/>" + innerA + "</pattern>" +
+        "<pattern id='pB' patternUnits='objectBoundingBox' width='0.26' height='0.26' viewBox='0 0 26 26'>" +
+        "<rect width='26' height='26' fill='" + colorB + "'/>" + innerB + "</pattern>" +
+        "<clipPath id='cTL'><polygon points='0,0 100,0 0,100'/></clipPath>" +
+        "<clipPath id='cBR'><polygon points='100,0 100,100 0,100'/></clipPath>" +
+        "</defs>" +
+        "<rect width='100' height='100' fill='url(#pA)' clip-path='url(#cTL)'/>" +
+        "<rect width='100' height='100' fill='url(#pB)' clip-path='url(#cBR)'/>" +
+        "</svg>";
+
+    return "url(\"data:image/svg+xml," + encodeURIComponent(svg) + "\")";
+}
 
 // Oboji element + uzorak specifičan za tu boju (u malo drugačijoj nijansi)
 function applyCellPattern(el, color) {
     if (isDualColor(color)) {
         const parts = dualParts(color);
         el.style.backgroundColor = parts[0];
-        el.style.backgroundImage =
-            "linear-gradient(135deg, " + parts[0] + " 0%, " + parts[0] + " 49%, " + parts[1] + " 51%, " + parts[1] + " 100%)";
         el.style.backgroundPosition = "0 0";
-        el.style.backgroundSize = "";
+        if (cellTheme === "plain") {
+            el.style.backgroundSize = "";
+            el.style.backgroundImage = "linear-gradient(135deg, " + parts[0] + " 0%, " + parts[0] + " 49%, " + parts[1] + " 51%, " + parts[1] + " 100%)";
+        } else {
+            el.style.backgroundSize = "100% 100%";
+            el.style.backgroundImage = dualPatternBg(parts[0], parts[1]);
+        }
         return;
     }
 
@@ -295,12 +334,8 @@ function applyCellPattern(el, color) {
         return;
     }
 
-    const idx = ALL_COLORS.indexOf(color);
-    const pat = PATTERNS[(idx >= 0 ? idx : 0) % PATTERNS.length];
-    // nijansa uzorka: tamnija na svijetlim bojama, svjetlija na tamnima
-    const sh = isLightColor(color) ? shade(color, -0.16) : shade(color, 0.22);
-
-    const out = pat(sh);
+    const inner = patternForColor(color)(patternShade(color));
+    const out = tileBg(inner);
     el.style.backgroundImage = out.image;
     el.style.backgroundSize = out.size;
 }
