@@ -274,38 +274,6 @@ h3 {
     gap: 5px;
 }
 
-/* ===== MEGA (kvadratići raznih veličina na istoj ploči) ===== */
-/* veći kvadratić je teže popuniti, ali nosi eksponencijalno više bodova (rizik/nagrada) */
-.board.mega {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-content: flex-start;
-    gap: 20px;
-    width: 700px;
-}
-
-.board.mega .big-square {
-    width: auto;
-    height: auto;
-}
-
-.board.mega .big-square.mega-2 {
-    width: 110px;
-    height: 110px;
-}
-
-.board.mega .big-square.mega-3 {
-    width: 165px;
-    height: 165px;
-}
-
-.board.mega .big-square.mega-4 {
-    width: 220px;
-    height: 220px;
-    border-color: #fbbf24;   /* zlatni obrub - naglasi rijedak "jackpot" kvadratić */
-}
-
 .cell {
     background: #374151;
     border-radius: 6px;

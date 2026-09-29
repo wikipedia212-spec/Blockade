@@ -49,7 +49,7 @@ let dualChance = DIFFICULTIES.normal.dualChance;
 let cellTheme = "patterns";   // uzorak na kvadratićima: "plain" | "patterns"
 let showNumbers = true;       // prikaz brojeva na bojama (pomoć za daltoniste)
 let musicOn = true;           // sviranje pozadinske glazbe
-let gameMode = "classic";     // oblik polja: "classic" (kvadrati) | "mega" (razne veličine) | "time" (blitz)
+let gameMode = "classic";     // oblik polja: "classic" (kvadrati) | "time" (blitz)
 
 // Oznaka džokera: outline jokerske kape/glave, okrenut naopačke (rotacija 180°)
 function jokerSvg() {
@@ -95,7 +95,7 @@ let activeColors = [];     // prave boje aktivne na ovom nivou + bijeli džoker
 const MAX_SCORES = 10;         // koliko igrača se pamti na ljestvici
 const RACE_START_MS = 60000;   // Time Race: početno vrijeme (60 s)
 const RACE_BONUS_MS = 5000;    // Time Race: +5 s po zatvorenom kvadratu
-let leaderboard = [];      // [{name, score, level, difficulty, mode}] - endless (Classic/Mega)
+let leaderboard = [];      // [{name, score, level, difficulty, mode}] - endless (Classic)
 let leaderboardTime = [];  // [{name, score, level, difficulty}] - Time Race, sortirano po bodovima
 let playerName = "";       // zadnje upisano ime igrača
 let currentEntry = null;   // unos trenutne igre na aktivnoj ljestvici (za živo uređivanje imena)
@@ -492,49 +492,20 @@ function renderStorage() {
 }
 
 // ===== PLOČA =====
-// MEGA mod: kvadratići različitih veličina na istoj ploči - veći je teže popuniti,
-// ali nosi eksponencijalno više bodova (rizik/nagrada).
-// { n: duljina stranice mreže polja, mult: množitelj bodova, weight: šansa izbora }
-const MEGA_SIZES = [
-    { n: 2, mult: 1, weight: 65, px: 110 },   // 2x2 = 4 polja, standardno
-    { n: 3, mult: 2, weight: 27, px: 165 },   // 3x3 = 9 polja
-    { n: 4, mult: 4, weight: 8,  px: 220 }    // 4x4 = 16 polja, rijedak "jackpot"
-];
-
-function pickMegaSize() {
-    const total = MEGA_SIZES.reduce((s, m) => s + m.weight, 0);
-    let r = Math.random() * total;
-    for (const m of MEGA_SIZES) {
-        if (r < m.weight) return m;
-        r -= m.weight;
-    }
-    return MEGA_SIZES[0];
-}
-
 function createBoard() {
     boardDiv.innerHTML = "";
     bigSquares.length = 0;
 
-    const mega = gameMode === "mega";
-
     for (let i = 0; i < 10; i++) {
 
-        const size = mega ? pickMegaSize() : { n: 2, mult: 1, px: 120 };
-        const n = size.n * size.n;
-
-        const square = { cells: new Array(n).fill(null), sizeMult: size.mult, gridN: size.n, naturalSize: size.px };
+        const square = { cells: new Array(4).fill(null) };
         bigSquares.push(square);
 
         const bigDiv = document.createElement("div");
         bigDiv.className = "big-square";
-        if (mega) {
-            bigDiv.classList.add("mega-" + size.n);
-            bigDiv.style.gridTemplateColumns = "repeat(" + size.n + ", 1fr)";
-            bigDiv.style.gridTemplateRows = "repeat(" + size.n + ", 1fr)";
-        }
         square.element = bigDiv;
 
-        for (let j = 0; j < n; j++) {
+        for (let j = 0; j < 4; j++) {
             const cell = document.createElement("div");
             cell.className = "cell";
             makeDropTarget(cell, () => dropOnCell(square, j));
@@ -569,24 +540,20 @@ function renderCell(cell, c) {
 
     applyCellPattern(cell, c);
 
-    // veličina broja prati stvarnu veličinu polja (kod MEGA moda polja su raznih gustoća)
-    const cellPx = cell.getBoundingClientRect().width || 50;
-
     if (c === WHITE) {
         cell.innerHTML = jokerSvg();
     } else if (isDualColor(c)) {
         if (showNumbers) {
             const parts = dualParts(c);
-            const fs = Math.max(9, Math.round(cellPx * 0.32));
             cell.innerHTML =
-                '<span class="color-num dual-num" style="font-size:' + fs + 'px">' +
+                '<span class="color-num dual-num" style="font-size:18px">' +
                 colorNumber(parts[0]) + "/" + colorNumber(parts[1]) + '</span>';
         } else {
             cell.innerHTML = "";
         }
     } else if (showNumbers) {
         const txt = isLightColor(c) ? "#111" : "#fff";
-        const fs = Math.max(10, Math.round(cellPx * 0.38));
+        const fs = 22;
         cell.innerHTML =
             '<span class="color-num" style="color:' + txt + ";font-size:" + fs + 'px">' +
             colorNumber(c) + '</span>';
@@ -785,11 +752,11 @@ function pulse(el) {
 }
 
 // Boje iz popunjenog polja se prvo rastrknu (eksplozija), pa tek onda odlete u kutiju
-function flyColorsToCollector(points, square) {
+function flyColorsToCollector(points) {
     const box = collectorBox.getBoundingClientRect();
     const targetX = box.left + box.width / 2;
     const targetY = box.top + box.height / 2;
-    const scale = square ? squareRenderScale(square.element, square.naturalSize) : 1;
+    const scale = currentBoardScale();
     const SIZE = 30 * scale;
 
     points.forEach((p, i) => {
@@ -880,15 +847,15 @@ function hexToRgbString(hex) {
     return parseInt(m[1], 16) + "," + parseInt(m[2], 16) + "," + parseInt(m[3], 16);
 }
 
-// Faktor kojim je kvadrat trenutno prikazan naspram svoje prirodne veličine
+// Faktor kojim je kvadrat trenutno prikazan naspram svoje prirodne veličine (120px)
 // (fullscreen na mobitelu skalira cijeli .game preko transform: scale, pa svi
-// efekti u fiksnim pikselima moraju pratiti tu skalu da izgledaju isto na svakom ekranu).
-// MEGA kvadratići imaju svoju vlastitu prirodnu veličinu (naturalSize) jer variraju.
-function squareRenderScale(el, naturalSize) {
-    if (!el || !naturalSize) return 1;
-    const w = el.getBoundingClientRect().width;
+// efekti u fiksnim pikselima moraju pratiti tu skalu da izgledaju isto na svakom ekranu)
+function currentBoardScale() {
+    const sample = document.querySelector(".big-square");
+    if (!sample) return 1;
+    const w = sample.getBoundingClientRect().width;
     if (!w) return 1;
-    return Math.min(Math.max(w / naturalSize, 0.35), 1.3);
+    return Math.min(Math.max(w / 120, 0.35), 1.3);
 }
 
 // Puls u boji koji se širi IZVAN kvadrata, sve dalje kako combo raste - uvijek centriran na kvadrat koji ga je napravio
@@ -899,7 +866,7 @@ function spawnComboPulse(square, color, combo) {
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     const n = combo || 1;
-    const spread = Math.min(40 + (n - 1) * 35, 260) * squareRenderScale(el, square.naturalSize);
+    const spread = Math.min(40 + (n - 1) * 35, 260) * currentBoardScale();
 
     const pulse = document.createElement("div");
     pulse.className = "combo-pulse";
@@ -971,9 +938,7 @@ function checkCompleted(square) {
         const bonus = combo >= 2 ? 4 * Math.pow(2, combo - 2) : 0;
         // specijalni bonus: polje popunjeno isključivo džokerima -> 100 bodova
         const allJokers = square.cells.every(c => c === WHITE);
-        // MEGA: veći kvadratić (sizeMult) nosi eksponencijalno više bodova - rizik/nagrada
-        const sizeMult = square.sizeMult || 1;
-        const base = (allJokers ? 100 : square.cells.length) * sizeMult;
+        const base = allJokers ? 100 : square.cells.length;
         score += base + bonus;
         scoreDiv.textContent = score;
         pulse(scoreDiv);
@@ -1005,7 +970,7 @@ function checkCompleted(square) {
 
         // polje se oslobađa odmah nakon bodovanja
         square.cells = new Array(square.cells.length).fill(null);
-        flyColorsToCollector(points, square);
+        flyColorsToCollector(points);
     }
 }
 
@@ -1194,7 +1159,7 @@ function updateHighscoreScreen() {
                     '<span class="hs-plevel">lvl ' + e.level + '</span>' +
                 '</div>';
         } else {
-            const modeLabel = e.mode === "mega" ? "Mega" : (e.mode === "classic" ? "Classic" : "");
+            const modeLabel = e.mode === "classic" ? "Classic" : "";
             const meta = [diffLabel, modeLabel].filter(Boolean).join(" · ");
             html +=
                 '<div class="hs-row">' +
@@ -1370,12 +1335,11 @@ function updateMusicPlayBtn() {
 function isTimeRace() { return gameMode === "time"; }
 
 function setGameMode(mode, save) {
-    if (mode !== "classic" && mode !== "mega" && mode !== "time") mode = "classic";
+    if (mode !== "classic" && mode !== "time") mode = "classic";
     gameMode = mode;
-    boardDiv.classList.toggle("mega", mode === "mega");
     boardDiv.classList.toggle("time-race", mode === "time");
     if (raceHud) raceHud.hidden = !isTimeRace();
-    createBoard();   // ponovo izgradi ploču (Mega bira nasumičnu veličinu po kvadratiću)
+    createBoard();   // ponovo izgradi ploču
     if (save) {
         try { localStorage.setItem("blockade_mode", mode); } catch (e) {}
     }
@@ -1386,8 +1350,7 @@ function setGameMode(mode, save) {
 function loadGameMode() {
     let m = "classic";
     try { m = localStorage.getItem("blockade_mode") || "classic"; } catch (e) {}
-    gameMode = (m === "mega" || m === "time") ? m : "classic";
-    boardDiv.classList.toggle("mega", gameMode === "mega");
+    gameMode = (m === "time") ? m : "classic";
     boardDiv.classList.toggle("time-race", gameMode === "time");
     if (raceHud) raceHud.hidden = !isTimeRace();
     updateModeButtons();
