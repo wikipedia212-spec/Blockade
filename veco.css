@@ -274,59 +274,37 @@ h3 {
     gap: 5px;
 }
 
-/* ===== HEX (šesterokuti, 6 kriški) ===== */
-.board.hex {
-    grid-template-columns: repeat(5, 150px);
-    row-gap: 40px;
-    column-gap: 10px;
+/* ===== MEGA (kvadratići raznih veličina na istoj ploči) ===== */
+/* veći kvadratić je teže popuniti, ali nosi eksponencijalno više bodova (rizik/nagrada) */
+.board.mega {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: flex-start;
+    gap: 20px;
+    width: 700px;
 }
 
-.board.hex .big-square {
-    width: 150px;
-    height: 150px;
-    border: none;
-    border-radius: 0;
-    padding: 0;
-    display: block;
-    position: relative;
-    background: transparent;
+.board.mega .big-square {
+    width: auto;
+    height: auto;
 }
 
-/* kriške: trokuti koji zajedno čine šesterokut */
-.board.hex .cell {
-    position: absolute;
-    inset: 0;
-    border-radius: 0;
+.board.mega .big-square.mega-2 {
+    width: 110px;
+    height: 110px;
 }
 
-/* obris šesterokuta (iznad kriški, ne hvata klik) */
-.hex-outline {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
+.board.mega .big-square.mega-3 {
+    width: 165px;
+    height: 165px;
 }
 
-/* broj / džoker postavljeni u težište kriške */
-.cell.wedge .color-num,
-.cell.wedge .wedge-mark {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    line-height: 1;
+.board.mega .big-square.mega-4 {
+    width: 220px;
+    height: 220px;
+    border-color: #fbbf24;   /* zlatni obrub - naglasi rijedak "jackpot" kvadratić */
 }
-
-.cell.wedge .wedge-mark {
-    width: 22px;
-    height: 22px;
-}
-
-.cell.wedge .wedge-mark .joker-mark {
-    width: 100%;
-    height: 100%;
-}
-
-/* HEX: redovi poravnati (bez saće offseta), samo vertikalni razmak preko row-gap */
 
 .cell {
     background: #374151;
@@ -449,12 +427,6 @@ h3 {
     transform: scale(0);
     transform-origin: center;
     animation: squareFlash 0.6s ease-out;
-}
-
-/* u HEX modu, ograniči bljesak na hexagon oblik */
-.board.hex .big-square.completed-flash::after {
-    border-radius: 0;
-    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
 
 @keyframes squareFlash {

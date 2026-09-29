@@ -49,7 +49,7 @@ let dualChance = DIFFICULTIES.normal.dualChance;
 let cellTheme = "patterns";   // uzorak na kvadratićima: "plain" | "patterns"
 let showNumbers = true;       // prikaz brojeva na bojama (pomoć za daltoniste)
 let musicOn = true;           // sviranje pozadinske glazbe
-let gameMode = "classic";     // oblik polja: "classic" (kvadrati) | "hex" (saće)
+let gameMode = "classic";     // oblik polja: "classic" (kvadrati) | "mega" (razne veličine) | "time" (blitz)
 
 // Oznaka džokera: outline jokerske kape/glave, okrenut naopačke (rotacija 180°)
 function jokerSvg() {
@@ -95,7 +95,7 @@ let activeColors = [];     // prave boje aktivne na ovom nivou + bijeli džoker
 const MAX_SCORES = 10;         // koliko igrača se pamti na ljestvici
 const RACE_START_MS = 60000;   // Time Race: početno vrijeme (60 s)
 const RACE_BONUS_MS = 5000;    // Time Race: +5 s po zatvorenom kvadratu
-let leaderboard = [];      // [{name, score, level, difficulty, mode}] - endless (Classic/HEX)
+let leaderboard = [];      // [{name, score, level, difficulty, mode}] - endless (Classic/Mega)
 let leaderboardTime = [];  // [{name, score, level, difficulty}] - Time Race, sortirano po bodovima
 let playerName = "";       // zadnje upisano ime igrača
 let currentEntry = null;   // unos trenutne igre na aktivnoj ljestvici (za živo uređivanje imena)
@@ -492,69 +492,53 @@ function renderStorage() {
 }
 
 // ===== PLOČA =====
-// HEX mod: 6 trokutastih polja (kriški) koja zajedno čine šesterokut
-const HEX_WEDGES = [
-    "polygon(50% 50%, 50% 0%, 100% 25%)",
-    "polygon(50% 50%, 100% 25%, 100% 75%)",
-    "polygon(50% 50%, 100% 75%, 50% 100%)",
-    "polygon(50% 50%, 50% 100%, 0% 75%)",
-    "polygon(50% 50%, 0% 75%, 0% 25%)",
-    "polygon(50% 50%, 0% 25%, 50% 0%)"
-];
-// težišta kriški (udio širine/visine) za broj i let boja u spremnik
-const HEX_CENTROIDS = [
-    [0.667, 0.25], [0.833, 0.5], [0.667, 0.75],
-    [0.333, 0.75], [0.167, 0.5], [0.333, 0.25]
+// MEGA mod: kvadratići različitih veličina na istoj ploči - veći je teže popuniti,
+// ali nosi eksponencijalno više bodova (rizik/nagrada).
+// { n: duljina stranice mreže polja, mult: množitelj bodova, weight: šansa izbora }
+const MEGA_SIZES = [
+    { n: 2, mult: 1, weight: 65, px: 110 },   // 2x2 = 4 polja, standardno
+    { n: 3, mult: 2, weight: 27, px: 165 },   // 3x3 = 9 polja
+    { n: 4, mult: 4, weight: 8,  px: 220 }    // 4x4 = 16 polja, rijedak "jackpot"
 ];
 
-// obris šesterokuta + linije koje razdvajaju 6 kriški (od centra do svakog vrha)
-function hexOutlineBg(stroke) {
-    const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'>" +
-        "<g fill='none' stroke='" + stroke + "' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'>" +
-            "<polygon points='50,2 98,26 98,74 50,98 2,74 2,26'/>" +
-            "<path d='M50 50 L50 2 M50 50 L98 26 M50 50 L98 74 M50 50 L50 98 M50 50 L2 74 M50 50 L2 26'/>" +
-        "</g></svg>";
-    return "url(\"data:image/svg+xml," + encodeURIComponent(svg) + "\")";
-}
-
-function cellsPerSquare() {
-    return gameMode === "hex" ? 6 : 4;
+function pickMegaSize() {
+    const total = MEGA_SIZES.reduce((s, m) => s + m.weight, 0);
+    let r = Math.random() * total;
+    for (const m of MEGA_SIZES) {
+        if (r < m.weight) return m;
+        r -= m.weight;
+    }
+    return MEGA_SIZES[0];
 }
 
 function createBoard() {
     boardDiv.innerHTML = "";
     bigSquares.length = 0;
 
-    const n = cellsPerSquare();
-    const hex = gameMode === "hex";
+    const mega = gameMode === "mega";
 
     for (let i = 0; i < 10; i++) {
 
-        const square = { cells: new Array(n).fill(null) };
+        const size = mega ? pickMegaSize() : { n: 2, mult: 1, px: 120 };
+        const n = size.n * size.n;
+
+        const square = { cells: new Array(n).fill(null), sizeMult: size.mult, gridN: size.n, naturalSize: size.px };
         bigSquares.push(square);
 
         const bigDiv = document.createElement("div");
         bigDiv.className = "big-square";
+        if (mega) {
+            bigDiv.classList.add("mega-" + size.n);
+            bigDiv.style.gridTemplateColumns = "repeat(" + size.n + ", 1fr)";
+            bigDiv.style.gridTemplateRows = "repeat(" + size.n + ", 1fr)";
+        }
         square.element = bigDiv;
 
         for (let j = 0; j < n; j++) {
             const cell = document.createElement("div");
             cell.className = "cell";
-            if (hex) {
-                cell.classList.add("wedge");
-                cell.style.clipPath = HEX_WEDGES[j];
-                cell._cx = HEX_CENTROIDS[j][0];
-                cell._cy = HEX_CENTROIDS[j][1];
-            }
             makeDropTarget(cell, () => dropOnCell(square, j));
             bigDiv.appendChild(cell);
-        }
-
-        if (hex) {
-            const outline = document.createElement("div");
-            outline.className = "hex-outline";
-            outline.style.backgroundImage = hexOutlineBg("#555");
-            bigDiv.appendChild(outline);
         }
 
         // drop na cijeli veliki kvadrat (razmak/padding izvan polja) -> auto-place za boju
@@ -585,28 +569,26 @@ function renderCell(cell, c) {
 
     applyCellPattern(cell, c);
 
-    const hex = cell._cx !== undefined;
-    const pos = hex ? ("left:" + (cell._cx * 100) + "%;top:" + (cell._cy * 100) + "%;") : "";
+    // veličina broja prati stvarnu veličinu polja (kod MEGA moda polja su raznih gustoća)
+    const cellPx = cell.getBoundingClientRect().width || 50;
 
     if (c === WHITE) {
-        cell.innerHTML = hex
-            ? '<span class="wedge-mark" style="' + pos + '">' + jokerSvg() + '</span>'
-            : jokerSvg();
+        cell.innerHTML = jokerSvg();
     } else if (isDualColor(c)) {
         if (showNumbers) {
             const parts = dualParts(c);
-            const fs = hex ? 14 : 18;
+            const fs = Math.max(9, Math.round(cellPx * 0.32));
             cell.innerHTML =
-                '<span class="color-num dual-num" style="' + pos + "font-size:" + fs + 'px">' +
+                '<span class="color-num dual-num" style="font-size:' + fs + 'px">' +
                 colorNumber(parts[0]) + "/" + colorNumber(parts[1]) + '</span>';
         } else {
             cell.innerHTML = "";
         }
     } else if (showNumbers) {
         const txt = isLightColor(c) ? "#111" : "#fff";
-        const fs = hex ? 16 : 22;
+        const fs = Math.max(10, Math.round(cellPx * 0.38));
         cell.innerHTML =
-            '<span class="color-num" style="' + pos + "color:" + txt + ";font-size:" + fs + 'px">' +
+            '<span class="color-num" style="color:' + txt + ";font-size:" + fs + 'px">' +
             colorNumber(c) + '</span>';
     } else {
         cell.innerHTML = "";
@@ -803,11 +785,11 @@ function pulse(el) {
 }
 
 // Boje iz popunjenog polja se prvo rastrknu (eksplozija), pa tek onda odlete u kutiju
-function flyColorsToCollector(points) {
+function flyColorsToCollector(points, square) {
     const box = collectorBox.getBoundingClientRect();
     const targetX = box.left + box.width / 2;
     const targetY = box.top + box.height / 2;
-    const scale = currentBoardScale();
+    const scale = square ? squareRenderScale(square.element, square.naturalSize) : 1;
     const SIZE = 30 * scale;
 
     points.forEach((p, i) => {
@@ -900,15 +882,13 @@ function hexToRgbString(hex) {
 
 // Faktor kojim je kvadrat trenutno prikazan naspram svoje prirodne veličine
 // (fullscreen na mobitelu skalira cijeli .game preko transform: scale, pa svi
-// efekti u fiksnim pikselima moraju pratiti tu skalu da izgledaju isto na svakom ekranu)
-function currentBoardScale() {
-    const isHex = boardDiv.classList.contains("hex");
-    const baseline = isHex ? 150 : 120;
-    const sample = document.querySelector(".big-square");
-    if (!sample) return 1;
-    const w = sample.getBoundingClientRect().width;
+// efekti u fiksnim pikselima moraju pratiti tu skalu da izgledaju isto na svakom ekranu).
+// MEGA kvadratići imaju svoju vlastitu prirodnu veličinu (naturalSize) jer variraju.
+function squareRenderScale(el, naturalSize) {
+    if (!el || !naturalSize) return 1;
+    const w = el.getBoundingClientRect().width;
     if (!w) return 1;
-    return Math.min(Math.max(w / baseline, 0.35), 1.3);
+    return Math.min(Math.max(w / naturalSize, 0.35), 1.3);
 }
 
 // Puls u boji koji se širi IZVAN kvadrata, sve dalje kako combo raste - uvijek centriran na kvadrat koji ga je napravio
@@ -919,7 +899,7 @@ function spawnComboPulse(square, color, combo) {
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     const n = combo || 1;
-    const spread = Math.min(40 + (n - 1) * 35, 260) * currentBoardScale();
+    const spread = Math.min(40 + (n - 1) * 35, 260) * squareRenderScale(el, square.naturalSize);
 
     const pulse = document.createElement("div");
     pulse.className = "combo-pulse";
@@ -991,7 +971,9 @@ function checkCompleted(square) {
         const bonus = combo >= 2 ? 4 * Math.pow(2, combo - 2) : 0;
         // specijalni bonus: polje popunjeno isključivo džokerima -> 100 bodova
         const allJokers = square.cells.every(c => c === WHITE);
-        const base = allJokers ? 100 : square.cells.length;
+        // MEGA: veći kvadratić (sizeMult) nosi eksponencijalno više bodova - rizik/nagrada
+        const sizeMult = square.sizeMult || 1;
+        const base = (allJokers ? 100 : square.cells.length) * sizeMult;
         score += base + bonus;
         scoreDiv.textContent = score;
         pulse(scoreDiv);
@@ -1015,25 +997,15 @@ function checkCompleted(square) {
 
         // zapamti polazne točke (centar polja) i boje pa ih pošalji u kutiju
         const cells = square.element.children;
-        const boxRect = square.element.getBoundingClientRect();
         const points = [];
         for (let i = 0; i < square.cells.length; i++) {
-            const cell = cells[i];
-            let x, y;
-            if (cell._cx !== undefined) {            // HEX: težište kriške
-                x = boxRect.left + cell._cx * boxRect.width;
-                y = boxRect.top + cell._cy * boxRect.height;
-            } else {                                  // klasično: centar polja
-                const cr = cell.getBoundingClientRect();
-                x = cr.left + cr.width / 2;
-                y = cr.top + cr.height / 2;
-            }
-            points.push({ x: x, y: y, color: square.cells[i] });
+            const cr = cells[i].getBoundingClientRect();
+            points.push({ x: cr.left + cr.width / 2, y: cr.top + cr.height / 2, color: square.cells[i] });
         }
 
         // polje se oslobađa odmah nakon bodovanja
         square.cells = new Array(square.cells.length).fill(null);
-        flyColorsToCollector(points);
+        flyColorsToCollector(points, square);
     }
 }
 
@@ -1222,7 +1194,7 @@ function updateHighscoreScreen() {
                     '<span class="hs-plevel">lvl ' + e.level + '</span>' +
                 '</div>';
         } else {
-            const modeLabel = e.mode === "hex" ? "HEX" : (e.mode === "classic" ? "Classic" : "");
+            const modeLabel = e.mode === "mega" ? "Mega" : (e.mode === "classic" ? "Classic" : "");
             const meta = [diffLabel, modeLabel].filter(Boolean).join(" · ");
             html +=
                 '<div class="hs-row">' +
@@ -1398,12 +1370,12 @@ function updateMusicPlayBtn() {
 function isTimeRace() { return gameMode === "time"; }
 
 function setGameMode(mode, save) {
-    if (mode !== "classic" && mode !== "hex" && mode !== "time") mode = "classic";
+    if (mode !== "classic" && mode !== "mega" && mode !== "time") mode = "classic";
     gameMode = mode;
-    boardDiv.classList.toggle("hex", mode === "hex");
+    boardDiv.classList.toggle("mega", mode === "mega");
     boardDiv.classList.toggle("time-race", mode === "time");
     if (raceHud) raceHud.hidden = !isTimeRace();
-    createBoard();   // ponovo izgradi ploču (4 ili 6 polja po kvadratu; time race koristi 4)
+    createBoard();   // ponovo izgradi ploču (Mega bira nasumičnu veličinu po kvadratiću)
     if (save) {
         try { localStorage.setItem("blockade_mode", mode); } catch (e) {}
     }
@@ -1414,8 +1386,8 @@ function setGameMode(mode, save) {
 function loadGameMode() {
     let m = "classic";
     try { m = localStorage.getItem("blockade_mode") || "classic"; } catch (e) {}
-    gameMode = (m === "hex" || m === "time") ? m : "classic";
-    boardDiv.classList.toggle("hex", gameMode === "hex");
+    gameMode = (m === "mega" || m === "time") ? m : "classic";
+    boardDiv.classList.toggle("mega", gameMode === "mega");
     boardDiv.classList.toggle("time-race", gameMode === "time");
     if (raceHud) raceHud.hidden = !isTimeRace();
     updateModeButtons();
@@ -1719,11 +1691,9 @@ function fitFullscreen() {
         const h = gameEl.offsetHeight || 1;
         // fit-inside: skaliraj da stane u oba dimenzija (bez rezanja)
         const scale = Math.min(window.innerWidth / w, window.innerHeight / h);
-        // U HEX modu pomakni sve desno da bolje sjedne u fullscreen
-        const isHex = boardDiv.classList.contains("hex");
         // na dodiru: pomakni malo dolje da gumbi za glazbu ne prekrivaju gornji red
         const isTouch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-        const shiftX = isHex ? 90 : 0;
+        const shiftX = 0;
         const shiftY = isTouch ? 40 : 0;
         gameEl.style.transform =
             "translate(" + shiftX + "px, " + shiftY + "px) scale(" + scale.toFixed(4) + ")";
