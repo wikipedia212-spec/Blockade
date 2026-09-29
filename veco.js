@@ -38,9 +38,9 @@ let activeDualColors = [];   // dual parovi otključani do trenutnog nivoa
 
 // Postavke težine: koliko je boja aktivno na 1. nivou + šansa za moći/dual-boje
 const DIFFICULTIES = {
-    easy:   { startColors: 6,  powerChance: 0.08, dualChance: 0.05,  label: "Easy" },
-    normal: { startColors: 9,  powerChance: 0.05, dualChance: 0.035, label: "Normal" },
-    hard:   { startColors: 12, powerChance: 0.03, dualChance: 0.02,  label: "Hard" }
+    easy:   { startColors: 6,  powerChance: 0.05,  dualChance: 0.03,  label: "Easy" },
+    normal: { startColors: 9,  powerChance: 0.035, dualChance: 0.02,  label: "Normal" },
+    hard:   { startColors: 12, powerChance: 0.02,  dualChance: 0.012, label: "Hard" }
 };
 let difficulty = "normal";
 let startColors = DIFFICULTIES.normal.startColors;
