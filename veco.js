@@ -2274,8 +2274,8 @@ function setBackground(mode, save) {
         bgCtx.clearRect(0, 0, bgW, bgH);
         bgInit(mode);
     }
-    // crna podloga za sve animacije, standardna tamna samo za "Tamno"
-    document.body.style.background = (mode === "none") ? "#111827" : "#000";
+    // crna podloga za sve pozadine (uključujući Plain), radi dosljednosti
+    document.body.style.background = "#000";
     if (save) { try { localStorage.setItem("blockade_bg", mode); } catch (e) {} }
     updateBgButtons();
 }
