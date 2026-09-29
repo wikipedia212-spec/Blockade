@@ -1544,6 +1544,8 @@ const TUTORIAL_STEPS = [
       text: "A new color. A square only accepts ONE color until it clears — try dropping this one into a DIFFERENT, empty square." },
     { item: () => ({ kind: "color", color: WHITE }),
       text: "The white piece is a joker — it matches ANY color. Drag it into a square that already has a color in it." },
+    { item: () => ({ kind: "color", color: makeDualColor(ALL_COLORS[0], ALL_COLORS[1]) }),
+      text: "This piece has TWO colors on it. Drop it into an EMPTY square to unlock that square for BOTH of its colors, not just one." },
     { item: () => ({ kind: "power", power: "white" }),
       text: "The droplet power turns an already-placed field into a joker. Drag it onto a field that already has a color." },
     { item: () => ({ kind: "power", power: "add" }),
