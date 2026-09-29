@@ -1539,19 +1539,19 @@ const btnTutHudSkip = document.getElementById("btnTutHudSkip");
 // Tutorial prelazi na sljedeći korak čim se ta kockica uspješno postavi (vidi generateNext).
 const TUTORIAL_STEPS = [
     { item: () => ({ kind: "color", color: ALL_COLORS[2] }),
-      text: "Ovo je obična boja. Povuci je bilo gdje na ploču — sama se ispušta u prvo slobodno polje kvadratića." },
+      text: "This is a normal color. Drag it anywhere onto the board — it drops into the first free field of a square." },
     { item: () => ({ kind: "color", color: ALL_COLORS[4] }),
-      text: "Nova boja. Kvadratić prima samo JEDNU boju dok se ne isprazni — probaj je staviti u DRUGI, prazan kvadratić." },
+      text: "A new color. A square only accepts ONE color until it clears — try dropping this one into a DIFFERENT, empty square." },
     { item: () => ({ kind: "color", color: WHITE }),
-      text: "Bijela kockica je džoker — pristaje uz BILO KOJU boju. Povuci je u kvadratić koji već ima boju u sebi." },
+      text: "The white piece is a joker — it matches ANY color. Drag it into a square that already has a color in it." },
     { item: () => ({ kind: "power", power: "white" }),
-      text: "Moć kapljica pretvara već postavljeno polje u džoker. Povuci je na polje koje već ima boju." },
+      text: "The droplet power turns an already-placed field into a joker. Drag it onto a field that already has a color." },
     { item: () => ({ kind: "power", power: "add" }),
-      text: "Moć + dodaje boju koja nedostaje u jedno prazno polje. Povuci je na kvadratić koji već ima boju, ali nije pun." },
+      text: "The + power adds the missing color into one empty field. Drag it onto a square that already has a color, but isn't full yet." },
     { item: () => ({ kind: "power", power: "remove" }),
-      text: "Moć – uklanja boju iz polja. Povuci je na bilo koje popunjeno polje." },
+      text: "The – power removes the color from a field. Drag it onto any filled field." },
     { item: () => ({ kind: "power", power: "fill" }),
-      text: "Moć ★ odjednom popuni SVA prazna polja kvadratića istom bojom. Povuci je na kvadratić koji već ima boju, ali nije pun." }
+      text: "The ★ power instantly fills ALL empty fields of a square with the same color. Drag it onto a square that already has a color, but isn't full yet." }
 ];
 
 function showTutorialStep() {
