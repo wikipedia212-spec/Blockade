@@ -146,9 +146,8 @@ const screenSettings = document.getElementById("screen-settings");
 const screenHighscore = document.getElementById("screen-highscore");
 const screenPause = document.getElementById("screen-pause");
 const screenLegend = document.getElementById("screen-legend");
-const screenTutorial = document.getElementById("screen-tutorial");
 const hsListDiv = document.getElementById("hsList");
-const allScreens = [screenMain, screenSettings, screenHighscore, screenPause, screenLegend, screenTutorial, overlay];
+const allScreens = [screenMain, screenSettings, screenHighscore, screenPause, screenLegend, overlay];
 
 // ===== NIVOI =====
 // Nivo 1 traži 10 popunjenih kvadratića, svaki sljedeći +1.
@@ -178,6 +177,12 @@ function randomColor() {
 }
 
 function generateNext() {
+
+    if (tutorialMode) {
+        tutorialStep++;
+        showTutorialStep();
+        return;
+    }
 
     if (Math.random() < powerChance) {
         const power = POWER_KEYS[Math.floor(Math.random() * POWER_KEYS.length)];
@@ -961,6 +966,9 @@ function showLevelUp() {
 // ===== PROVJERA POPUNJENOSTI =====
 function checkCompleted(square) {
 
+    // tijekom tutoriala se ništa ne boduje niti zatvara - samo se isprobava mehanika
+    if (tutorialMode) return;
+
     const full = square.cells.every(c => c !== null);
     if (!full) return;
 
@@ -1500,6 +1508,8 @@ function openScreen(screen) {
     if (musicPlayBtn) musicPlayBtn.style.display = hide;
     if (musicNextBtn) musicNextBtn.style.display = hide;
     if (fullscreenBtn) fullscreenBtn.style.display = hide;
+    // sakrij uputu tutoriala dok je otvoren neki drugi ekran (pauza i sl.) da ne "probije" kroz njega
+    if (tutorialHud && screen) tutorialHud.hidden = true;
     // Time Race: pauziraj tajmer kad je otvoren izbornik (osim Game Over overlaya)
     if (screen && screen !== overlay && isTimeRace() && !gameOver) pauseRaceTimer();
 }
@@ -1512,44 +1522,84 @@ function closeToGame() {
     if (musicPlayBtn) musicPlayBtn.style.display = "";
     if (musicNextBtn) musicNextBtn.style.display = "";
     if (fullscreenBtn) fullscreenBtn.style.display = "";
+    // vrati uputu tutoriala ako je tutorial u tijeku
+    if (tutorialHud && tutorialMode) tutorialHud.hidden = false;
     if (isTimeRace() && !gameOver) resumeRaceTimer();
 }
 
-// ===== TUTORIAL =====
-let tutorialSlide = 0;
-const tutSlidesEl = document.getElementById("tutorialSlides");
-const tutStepSpan = document.getElementById("tutStep");
-const tutTotalSpan = document.getElementById("tutTotal");
-const btnTutPrev = document.getElementById("btnTutPrev");
-const btnTutNext = document.getElementById("btnTutNext");
-const btnTutSkip = document.getElementById("btnTutSkip");
-const tutSlidesCount = tutSlidesEl ? tutSlidesEl.children.length : 0;
-if (tutTotalSpan) tutTotalSpan.textContent = tutSlidesCount;
+// ===== INTERAKTIVNI TUTORIAL (igra se na pravoj ploči, skriptirane kockice) =====
+let tutorialMode = false;
+let tutorialStep = 0;
 
-function showTutorialSlide(n) {
-    if (!tutSlidesEl) return;
-    const slides = tutSlidesEl.children;
-    n = Math.max(0, Math.min(slides.length - 1, n));
-    tutorialSlide = n;
-    for (let i = 0; i < slides.length; i++) slides[i].hidden = (i !== n);
-    if (tutStepSpan) tutStepSpan.textContent = (n + 1);
-    if (btnTutPrev) btnTutPrev.disabled = (n === 0);
-    if (btnTutNext) btnTutNext.textContent = (n === slides.length - 1) ? "Start" : "Next";
+const tutorialHud = document.getElementById("tutorialHud");
+const tutorialHudText = document.getElementById("tutorialHudText");
+const btnTutHudSkip = document.getElementById("btnTutHudSkip");
+
+// Svaki korak daje TOČNO određenu kockicu (ne nasumičnu) + uputu što s njom napraviti.
+// Tutorial prelazi na sljedeći korak čim se ta kockica uspješno postavi (vidi generateNext).
+const TUTORIAL_STEPS = [
+    { item: () => ({ kind: "color", color: ALL_COLORS[2] }),
+      text: "Ovo je obična boja. Povuci je bilo gdje na ploču — sama se ispušta u prvo slobodno polje kvadratića." },
+    { item: () => ({ kind: "color", color: ALL_COLORS[4] }),
+      text: "Nova boja. Kvadratić prima samo JEDNU boju dok se ne isprazni — probaj je staviti u DRUGI, prazan kvadratić." },
+    { item: () => ({ kind: "color", color: WHITE }),
+      text: "Bijela kockica je džoker — pristaje uz BILO KOJU boju. Povuci je u kvadratić koji već ima boju u sebi." },
+    { item: () => ({ kind: "power", power: "white" }),
+      text: "Moć kapljica pretvara već postavljeno polje u džoker. Povuci je na polje koje već ima boju." },
+    { item: () => ({ kind: "power", power: "add" }),
+      text: "Moć + dodaje boju koja nedostaje u jedno prazno polje. Povuci je na kvadratić koji već ima boju, ali nije pun." },
+    { item: () => ({ kind: "power", power: "remove" }),
+      text: "Moć – uklanja boju iz polja. Povuci je na bilo koje popunjeno polje." },
+    { item: () => ({ kind: "power", power: "fill" }),
+      text: "Moć ★ odjednom popuni SVA prazna polja kvadratića istom bojom. Povuci je na kvadratić koji već ima boju, ali nije pun." }
+];
+
+function showTutorialStep() {
+    if (tutorialStep >= TUTORIAL_STEPS.length) {
+        endTutorial();
+        return;
+    }
+    incomingItem = TUTORIAL_STEPS[tutorialStep].item();
+    renderIncoming();
+    if (tutorialHudText) tutorialHudText.textContent = TUTORIAL_STEPS[tutorialStep].text;
+    if (tutorialHud) tutorialHud.hidden = false;
 }
 
-function openTutorial() {
-    showTutorialSlide(0);
-    openScreen(screenTutorial);
+// Kraj tutoriala (odrađen do kraja ILI preskočen) -> stvarna igra kreće ispočetka.
+function endTutorial() {
+    tutorialMode = false;
+    if (tutorialHud) tutorialHud.hidden = true;
+    startGame();
 }
 
-function tutorialNext() {
-    if (tutorialSlide >= tutSlidesCount - 1) startGame();
-    else showTutorialSlide(tutorialSlide + 1);
+function startInteractiveTutorial() {
+    score = 0;
+    scoreDiv.textContent = "0";
+    level = 1;
+    completedThisLevel = 0;
+    combo = 0;
+    completedThisDrop = false;
+    rebuildActiveColors();
+    storage = [null, null, null, null, null, null];
+    bigSquares.forEach(sq => sq.cells = new Array(sq.cells.length).fill(null));
+    dragSource = null;
+    gameOver = false;
+
+    tutorialMode = true;
+    tutorialStep = 0;
+
+    updateHud();
+    renderBoard();
+    renderStorage();
+    if (typeof loadBackground === "function") loadBackground();
+    stopRaceTimer();
+    if (raceTimeSpan) raceTimeSpan.textContent = "00:00.0";
+
+    closeToGame();
+    showTutorialStep();
 }
 
-function tutorialPrev() {
-    if (tutorialSlide > 0) showTutorialSlide(tutorialSlide - 1);
-}
+if (btnTutHudSkip) btnTutHudSkip.onclick = endTutorial;
 
 // ===== POKRETANJE / RESET IGRE =====
 function startGame() {
@@ -1586,11 +1636,7 @@ menuBtn.onclick = () => { if (!gameOver) openScreen(screenPause); };
 helpBtn.onclick = () => { if (!gameOver) openScreen(screenLegend); };
 document.getElementById("btnLegendBack").onclick = closeToGame;
 
-document.getElementById("btnStart").onclick = openTutorial;
-
-if (btnTutNext) btnTutNext.onclick = tutorialNext;
-if (btnTutPrev) btnTutPrev.onclick = tutorialPrev;
-if (btnTutSkip) btnTutSkip.onclick = startGame;
+document.getElementById("btnStart").onclick = startInteractiveTutorial;
 document.getElementById("btnSettings").onclick = () => { settingsReturn = screenMain; openScreen(screenSettings); };
 document.getElementById("btnHighscore").onclick = () => { updateHighscoreScreen(); openScreen(screenHighscore); };
 
@@ -1779,10 +1825,10 @@ btnSaveName.onclick = () => {
 };
 
 document.getElementById("btnResume").onclick = closeToGame;
-document.getElementById("btnPauseRestart").onclick = openTutorial;
+document.getElementById("btnPauseRestart").onclick = startInteractiveTutorial;
 document.getElementById("btnPauseMain").onclick = () => openScreen(screenMain);
 
-restartBtn.onclick = openTutorial;
+restartBtn.onclick = startInteractiveTutorial;
 document.getElementById("btnGoMain").onclick = () => openScreen(screenMain);
 
 // Escape: pauza / nastavi (samo dok igra traje)

@@ -585,202 +585,105 @@ h3 {
 .power-remove { --pw: #ef4444; background: #ef4444; }
 .power-fill   { --pw: #3b82f6; background: #3b82f6; }
 
-/* ===== Tutorial ekran ===== */
-.tutorial-box {
-    max-width: 520px;
-    text-align: left;
-}
-
-.tutorial-box h2 {
+/* ===== Interaktivni tutorial: uputa iznad prave ploče, dok se stvarno igra ===== */
+.tutorial-hud {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 150;
+    background: #1f2937;
+    border: 2px solid #22c55e;
+    border-radius: 14px;
+    padding: 14px 22px;
+    max-width: 90vw;
+    width: 520px;
     text-align: center;
-    color: #22c55e;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
-.tutorial-box h3 {
-    color: #fbbf24;
-    margin: 8px 0 10px;
-    text-align: center;
-    font-size: 22px;
-}
-
-.tut-slide p {
-    margin: 8px 0;
+.tutorial-hud p {
+    margin: 0 0 10px;
     font-size: 15px;
     line-height: 1.5;
+    color: #fff;
 }
 
-/* ===== Sličice u tutorijalu (mini prikaz kako se što izvodi) ===== */
-.tut-visual {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    min-height: 64px;
-    margin-bottom: 4px;
-}
-
-.tut-arrow {
-    font-size: 20px;
-    font-weight: bold;
-    color: #6b7280;
-}
-
-.tut-piece {
-    width: 40px;
-    height: 40px;
-    flex: 0 0 auto;
-    border-radius: 8px;
-    border: 3px solid #fff;
-    box-sizing: border-box;
-}
-
-.tut-mini-square {
-    width: 62px;
-    height: 62px;
-    flex: 0 0 auto;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 3px;
-    padding: 4px;
-    background: #374151;
-    border-radius: 10px;
-    box-sizing: border-box;
-}
-
-.tut-mini-square .tmc {
-    border-radius: 4px;
-    border: 2px solid rgba(255, 255, 255, 0.65);
-    box-sizing: border-box;
-}
-
-.tut-slot-row {
-    display: flex;
-    gap: 7px;
-}
-
-.tut-slot {
-    width: 40px;
-    height: 40px;
-    flex: 0 0 auto;
-    border: 2px dashed #777;
-    border-radius: 8px;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.tut-slot .tut-piece {
-    width: 26px;
-    height: 26px;
-    border-width: 2px;
-}
-
-.tut-joker-piece {
-    width: 54px;
-    height: 54px;
-    flex: 0 0 auto;
-    background: #fff;
-    border: 3px solid #fff;
-    border-radius: 10px;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.tut-joker-piece .joker-mark {
-    width: 72%;
-    height: 72%;
-}
-
-.tut-bonus-text {
-    font-weight: bold;
-    color: #fbbf24;
-    font-size: 20px;
-}
-
-.tut-power-row {
-    display: flex;
-    gap: 12px;
-}
-
-.tut-power-row .leg-tri {
-    width: 30px;
-    height: 30px;
-    flex: 0 0 30px;
-    font-size: 15px;
-}
-
-.tut-combo-badge {
-    background: rgba(0, 0, 0, 0.35);
-    color: #fbbf24;
-    font-weight: bold;
-    padding: 7px 16px;
-    border-radius: 20px;
-    font-size: 15px;
-}
-
-.tut-mode-shapes {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.tut-square-shape {
-    width: 38px;
-    height: 38px;
-    background: #ef4444;
-    border-radius: 6px;
-}
-
-.tut-hex-shape {
-    width: 42px;
-    height: 42px;
-    background: #3b82f6;
-    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-}
-
-.tut-vs {
-    color: #6b7280;
-    font-size: 13px;
-}
-
-.tut-slide .tut-small {
-    font-size: 13px;
-    color: #9ca3af;
-    margin-top: 12px;
-}
-
-.tut-nav {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 16px;
-    flex-wrap: wrap;
-}
-
-.tut-nav .tut-progress {
-    font-size: 13px;
-    color: #9ca3af;
-    margin-right: 8px;
-    letter-spacing: 1px;
-}
-
-.tutorial-box .tut-nav button {
+.tutorial-hud button {
     display: inline-block;
     width: auto;
     margin: 0;
-    padding: 10px 20px;
-    font-size: 15px;
+    background: #64748b;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.15s;
 }
 
-.tutorial-box .tut-nav button:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-    transform: none !important;
+.tutorial-hud button:hover {
+    transform: scale(1.05);
+}
+
+/* ===== Glavni izbornik: full-screen naslovni ekran (izdvojen od ostalih overlay-a) ===== */
+#screen-main {
+    background: radial-gradient(ellipse at center, #1f2937 0%, #0b0f16 100%);
+}
+
+#screen-main .overlay-box {
+    background: transparent;
+    border: none;
+    padding: 0;
+    width: 100%;
+    max-width: 640px;
+}
+
+#screen-main .menu-title {
+    font-size: clamp(56px, 11vw, 104px);
+    margin-bottom: 6px;
+    letter-spacing: 2px;
+}
+
+#screen-main .mode-label {
+    font-size: 16px;
+    color: #9ca3af;
+    margin-bottom: 12px;
+}
+
+#screen-main .mode-row {
+    margin-bottom: 36px;
+}
+
+#screen-main .mode-row .mode-btn {
+    padding: 16px 8px;
+    font-size: 16px;
+    border-radius: 10px;
+}
+
+#screen-main button#btnStart {
+    width: 300px;
+    font-size: 22px;
+    padding: 18px 24px;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    box-shadow: 0 8px 24px rgba(34, 197, 94, 0.35);
+}
+
+#screen-main button#btnSettings,
+#screen-main button#btnHighscore {
+    width: 220px;
+    background: transparent;
+    border: 2px solid #4b5563;
+    color: #d1d5db;
+    box-shadow: none;
+}
+
+#screen-main button#btnSettings:hover,
+#screen-main button#btnHighscore:hover {
+    border-color: #9ca3af;
+    color: #fff;
 }
 
 /* ===== Overlay ekrani (Game Over, izbornici) ===== */
