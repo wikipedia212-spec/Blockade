@@ -257,7 +257,7 @@ h3 {
     display: grid;
     grid-template-columns: repeat(5, 120px);
     /* row-gap column-gap: razmak između redova / stupaca */
-    gap: 60px 15px;
+    gap: 64px 19px;
 }
 
 .big-square {
