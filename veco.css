@@ -203,6 +203,7 @@ h3 {
     height: 72%;
     display: block;
     pointer-events: none;
+    transform-origin: 50% 50%;
 }
 
 .vis-power {
@@ -865,6 +866,24 @@ h3 {
     color: #111;
 }
 
+/* zaključani (plaćeni, još neotključani) kozmetički gumbi - zatamnjeni, ne reagiraju na hover */
+.cosmetic-row .cosmetic-btn.locked {
+    opacity: 0.5;
+    filter: grayscale(0.4);
+    cursor: not-allowed;
+}
+
+.cosmetic-row .cosmetic-btn.locked:hover {
+    transform: none;
+}
+
+/* gumb za otključavanje svih plaćenih kozmetičkih stvari */
+.btn-premium {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+    color: #111 !important;
+    margin: 4px auto 18px !important;
+}
+
 /* ===== Okviri velikog kvadrata (kozmetika) ===== */
 .board.frame-gold .big-square {
     border-color: #fbbf24;
@@ -893,6 +912,92 @@ h3 {
     66%  { border-color: #3b82f6; }
     83%  { border-color: #a855f7; }
     100% { border-color: #ef4444; }
+}
+
+/* praznični okviri */
+.board.frame-christmas .big-square {
+    border-color: #dc2626;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+}
+
+.board.frame-halloween .big-square {
+    border-color: #f97316;
+    box-shadow: 0 0 10px rgba(249, 115, 22, 0.5);
+}
+
+.board.frame-valentine .big-square {
+    border-color: #ec4899;
+    box-shadow: 0 0 10px rgba(236, 72, 153, 0.5);
+}
+
+.board.frame-easter .big-square {
+    border-color: #a7f3d0;
+    box-shadow: 0 0 10px rgba(167, 243, 208, 0.5);
+}
+
+/* ===== Animacije plaćenih džoker skinova ===== */
+.joker-mark.anim-twinkle {
+    animation: jokerTwinkle 1.6s ease-in-out infinite;
+}
+
+.joker-mark.anim-shimmer {
+    animation: jokerShimmer 2.2s ease-in-out infinite;
+}
+
+.joker-mark.anim-flicker {
+    animation: jokerFlicker 1.8s steps(1) infinite;
+}
+
+.joker-mark.anim-sway {
+    animation: jokerSway 2.4s ease-in-out infinite;
+}
+
+.joker-mark.anim-float {
+    animation: jokerFloat 2.6s ease-in-out infinite;
+}
+
+.joker-mark.anim-heartbeat {
+    animation: jokerHeartbeat 1.1s ease-in-out infinite;
+}
+
+.joker-mark.anim-hop {
+    animation: jokerHop 1s ease-in-out infinite;
+}
+
+@keyframes jokerTwinkle {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.18); opacity: 0.85; }
+}
+
+@keyframes jokerShimmer {
+    0%, 100% { transform: rotate(0deg); }
+    50%      { transform: rotate(8deg); }
+}
+
+@keyframes jokerFlicker {
+    0%, 20%, 24%, 55%, 100% { opacity: 1; }
+    22%, 54%                { opacity: 0.35; }
+}
+
+@keyframes jokerSway {
+    0%, 100% { transform: rotate(-6deg); }
+    50%      { transform: rotate(6deg); }
+}
+
+@keyframes jokerFloat {
+    0%, 100% { transform: translateY(0) rotate(-3deg); }
+    50%      { transform: translateY(-6%) rotate(3deg); }
+}
+
+@keyframes jokerHeartbeat {
+    0%, 28%, 70%, 100% { transform: scale(1); }
+    14%                { transform: scale(1.2); }
+    42%                { transform: scale(1.1); }
+}
+
+@keyframes jokerHop {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-10%); }
 }
 
 /* gumbi za uključivanje/isključivanje brojeva */

@@ -52,10 +52,11 @@ let musicOn = true;           // sviranje pozadinske glazbe
 let gameMode = "classic";     // oblik polja: "classic" (kvadrati) | "time" (blitz)
 
 // Oznake za džokera (kozmetika: koji skin je aktivan)
-let cosmeticJoker = "crown";   // "crown" | "star" | "diamond" | "bolt"
+let cosmeticJoker = "crown";   // "crown" | "star" | "diamond" | "bolt" | "christmas" | "halloween" | "valentine" | "easter"
 
+// Plaćeni skinovi imaju vlastitu animaciju (CSS klasa "anim-*" na joker-mark SVG-u); besplatna kruna je statična.
 const JOKER_SKINS = {
-    // kruna, okrenuta naopačke (rotacija 180°) - originalni skin
+    // kruna, okrenuta naopačke (rotacija 180°) - originalni, besplatni skin
     crown: '<svg class="joker-mark" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
         '<g transform="rotate(180 50 50)" fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">' +
             '<path d="M16 72 L11 22 L33 56 L50 10 L67 56 L89 22 L84 72 Q50 82 16 72 Z"/>' +
@@ -64,17 +65,38 @@ const JOKER_SKINS = {
             '<circle cx="89" cy="16" r="5"/>' +
         '</g>' +
     '</svg>',
-    star: '<svg class="joker-mark" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
+    star: '<svg class="joker-mark anim-twinkle" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
         '<path d="M50,5 L60.6,35.4 L92.8,36.1 L67.1,55.6 L76.5,86.4 L50,68 L23.5,86.4 L32.9,55.6 L7.2,36.1 L39.4,35.4 Z" ' +
         'fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>' +
     '</svg>',
-    diamond: '<svg class="joker-mark" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
+    diamond: '<svg class="joker-mark anim-shimmer" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
         '<path d="M50,5 L90,50 L50,95 L10,50 Z" ' +
         'fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>' +
     '</svg>',
-    bolt: '<svg class="joker-mark" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
+    bolt: '<svg class="joker-mark anim-flicker" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
         '<path d="M58,5 L22,58 L46,58 L38,95 L82,38 L54,38 Z" ' +
         'fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '</svg>',
+    // božićno drvce + stablo
+    christmas: '<svg class="joker-mark anim-sway" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M50,8 L68,35 L58,35 L74,58 L62,58 L80,85 L20,85 L38,58 L26,58 L42,35 L32,35 Z M42,85 L58,85 L58,95 L42,95 Z" ' +
+        'fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '</svg>',
+    // duh (Halloween)
+    halloween: '<svg class="joker-mark anim-float" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M50,8 C72,8 88,26 88,50 L88,85 L76,72 L64,85 L50,72 L36,85 L24,72 L12,85 L12,50 C12,26 28,8 50,8 Z" ' +
+        'fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '</svg>',
+    // srce (Valentinovo)
+    valentine: '<svg class="joker-mark anim-heartbeat" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M50,88 C20,62 5,42 5,26 C5,11 18,3 30,3 C40,3 48,9 50,19 C52,9 60,3 70,3 C82,3 95,11 95,26 C95,42 80,62 50,88 Z" ' +
+        'fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '</svg>',
+    // jaje (Uskrs)
+    easter: '<svg class="joker-mark anim-hop" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M50,5 C70,5 85,40 85,65 C85,85 70,95 50,95 C30,95 15,85 15,65 C15,40 30,5 50,5 Z" ' +
+        'fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>' +
+        '<path d="M22,46 Q36,52 50,44 T78,50" fill="none" stroke="#1f2937" stroke-width="4" stroke-linecap="round"/>' +
     '</svg>'
 };
 
@@ -315,8 +337,25 @@ const PATTERN_THEMES = {
     ],
     pixel: [
         (s) => "<g fill='#fff' opacity='0.45'><rect x='2' y='2' width='6' height='6'/><rect x='16' y='2' width='6' height='6'/><rect x='9' y='9' width='6' height='6'/><rect x='2' y='16' width='6' height='6'/><rect x='16' y='16' width='6' height='6'/></g>"
+    ],
+    // praznični paketi (plaćeni)
+    christmas: [
+        (s) => "<g stroke='#fff' stroke-width='1.3' opacity='0.8' fill='none'><path d='M13 2 L13 24 M2 13 L24 13 M5 5 L21 21 M21 5 L5 21'/></g>"
+    ],
+    halloween: [
+        (s) => "<g fill='#f97316' opacity='0.6'><path d='M13 10 C10 6 4 6 2 10 C6 11 9 13 10 16 C7 16 4 18 3 21 C7 21 10 19 13 16 C16 19 19 21 23 21 C22 18 19 16 16 16 C17 13 20 11 24 10 C22 6 16 6 13 10 Z'/></g>"
+    ],
+    valentine: [
+        (s) => "<g fill='#fff' opacity='0.55'><path d='M8 7 C6 5 3 6 3 9 C3 12 8 15 8 15 C8 15 13 12 13 9 C13 6 10 5 8 7 Z'/><path d='M20 16 C18 14 15 15 15 18 C15 20 20 23 20 23 C20 23 25 20 25 18 C25 15 22 14 20 16 Z'/></g>"
+    ],
+    easter: [
+        (s) => "<g fill='#fff' opacity='0.5'><ellipse cx='7' cy='8' rx='3' ry='4'/><ellipse cx='20' cy='18' rx='2.5' ry='3.5'/><ellipse cx='17' cy='6' rx='2' ry='2.8'/></g>"
     ]
 };
+
+// Koji paketi se smatraju "plaćenim" - pretpostavljeno zaključani dok se ne klikne Unlock
+const PREMIUM_PATTERNS = ["neon", "galaxy", "wood", "pixel", "christmas", "halloween", "valentine", "easter"];
+const PREMIUM_JOKERS = ["star", "diamond", "bolt", "christmas", "halloween", "valentine", "easter"];
 let cosmeticPattern = "classic";   // kozmetika: koji paket uzoraka se koristi
 
 function patternForColor(color) {
@@ -1278,6 +1317,7 @@ function updateThemeButtons() {
 // ===== KOZMETIKA (uzorak-tema, džoker skin, okvir kvadrata) =====
 function setCosmeticPattern(p, save) {
     if (!PATTERN_THEMES[p]) p = "classic";
+    if (PREMIUM_PATTERNS.indexOf(p) !== -1 && !premiumUnlocked) return;   // zaključano dok se ne otključa
     cosmeticPattern = p;
     if (save) {
         try { localStorage.setItem("blockade_cosmetic_pattern", p); } catch (e) {}
@@ -1296,6 +1336,7 @@ function loadCosmeticPattern() {
 
 function setCosmeticJoker(j, save) {
     if (!JOKER_SKINS[j]) j = "crown";
+    if (PREMIUM_JOKERS.indexOf(j) !== -1 && !premiumUnlocked) return;   // zaključano dok se ne otključa
     cosmeticJoker = j;
     if (save) {
         try { localStorage.setItem("blockade_cosmetic_joker", j); } catch (e) {}
@@ -1312,7 +1353,8 @@ function loadCosmeticJoker() {
     cosmeticJoker = JOKER_SKINS[j] ? j : "crown";
 }
 
-const FRAME_SKINS = ["default", "gold", "neon", "wood", "rainbow"];
+const FRAME_SKINS = ["default", "gold", "neon", "wood", "rainbow", "christmas", "halloween", "valentine", "easter"];
+const PREMIUM_FRAMES = ["gold", "neon", "wood", "rainbow", "christmas", "halloween", "valentine", "easter"];
 let cosmeticFrame = "default";   // okvir velikog kvadrata
 
 function applyCosmeticFrame() {
@@ -1321,6 +1363,7 @@ function applyCosmeticFrame() {
 
 function setCosmeticFrame(f, save) {
     if (FRAME_SKINS.indexOf(f) === -1) f = "default";
+    if (PREMIUM_FRAMES.indexOf(f) !== -1 && !premiumUnlocked) return;   // zaključano dok se ne otključa
     cosmeticFrame = f;
     applyCosmeticFrame();
     if (save) {
@@ -1336,8 +1379,28 @@ function loadCosmeticFrame() {
     applyCosmeticFrame();
 }
 
+// ===== PREMIUM UNLOCK (demo - bez stvarne naplate, za probu kako bi izgledalo) =====
+let premiumUnlocked = false;
+
+function setPremiumUnlocked(on, save) {
+    premiumUnlocked = !!on;
+    document.body.classList.toggle("premium-unlocked", premiumUnlocked);
+    if (save) {
+        try { localStorage.setItem("blockade_premium", premiumUnlocked ? "1" : "0"); } catch (e) {}
+    }
+    updateCosmeticButtons();
+}
+
+function loadPremiumUnlocked() {
+    let v = false;
+    try { v = localStorage.getItem("blockade_premium") === "1"; } catch (e) {}
+    setPremiumUnlocked(v, false);
+}
+
 function updateCosmeticButtons() {
     document.querySelectorAll(".cosmetic-btn").forEach(btn => {
+        const isPremium = btn.classList.contains("premium");
+        btn.classList.toggle("locked", isPremium && !premiumUnlocked);
         if (btn.dataset.pattern) btn.classList.toggle("active", btn.dataset.pattern === cosmeticPattern);
         if (btn.dataset.joker) btn.classList.toggle("active", btn.dataset.joker === cosmeticJoker);
         if (btn.dataset.frame) btn.classList.toggle("active", btn.dataset.frame === cosmeticFrame);
@@ -1708,11 +1771,20 @@ document.querySelectorAll(".theme-btn").forEach(btn => {
 
 document.querySelectorAll(".cosmetic-btn").forEach(btn => {
     btn.onclick = () => {
+        if (btn.classList.contains("locked")) return;   // zaključano - prvo Unlock
         if (btn.dataset.pattern) setCosmeticPattern(btn.dataset.pattern, true);
         else if (btn.dataset.joker) setCosmeticJoker(btn.dataset.joker, true);
         else if (btn.dataset.frame) setCosmeticFrame(btn.dataset.frame, true);
     };
 });
+
+const btnUnlockPremium = document.getElementById("btnUnlockPremium");
+if (btnUnlockPremium) {
+    btnUnlockPremium.onclick = () => {
+        // DEMO: ovdje bi išla stvarna Google Play Billing transakcija - trenutno samo otključa odmah za probu
+        setPremiumUnlocked(true, true);
+    };
+}
 
 document.querySelectorAll(".num-btn").forEach(btn => {
     btn.onclick = () => setNumbers(btn.dataset.num === "on", true);
@@ -1926,6 +1998,7 @@ document.addEventListener("click", (e) => {
 loadHighScore();
 loadDifficulty();
 loadCellTheme();
+loadPremiumUnlocked();
 loadCosmeticPattern();
 loadCosmeticJoker();
 loadCosmeticFrame();
