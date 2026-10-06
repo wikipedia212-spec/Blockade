@@ -36,16 +36,17 @@ for (let i = 0; i < ALL_COLORS.length - 1; i++) {
 }
 let activeDualColors = [];   // dual parovi otključani do trenutnog nivoa
 
-// Postavke težine: koliko je boja aktivno na 1. nivou + šansa za moći/dual-boje
+// Postavke težine: koliko je boja aktivno na 1. nivou + šansa za moći/dual-boje/džokera
 const DIFFICULTIES = {
-    easy:   { startColors: 6,  powerChance: 0.05,  dualChance: 0.03,  label: "Easy" },
-    normal: { startColors: 9,  powerChance: 0.035, dualChance: 0.02,  label: "Normal" },
-    hard:   { startColors: 12, powerChance: 0.02,  dualChance: 0.012, label: "Hard" }
+    easy:   { startColors: 6,  powerChance: 0.05,  dualChance: 0.03,  jokerChance: 0.07,  label: "Easy" },
+    normal: { startColors: 9,  powerChance: 0.035, dualChance: 0.02,  jokerChance: 0.05,  label: "Normal" },
+    hard:   { startColors: 12, powerChance: 0.02,  dualChance: 0.012, jokerChance: 0.035, label: "Hard" }
 };
 let difficulty = "normal";
 let startColors = DIFFICULTIES.normal.startColors;
 let powerChance = DIFFICULTIES.normal.powerChance;
 let dualChance = DIFFICULTIES.normal.dualChance;
+let jokerChance = DIFFICULTIES.normal.jokerChance;
 let cellTheme = "patterns";   // uzorak na kvadratićima: "plain" | "patterns"
 let showNumbers = true;       // prikaz brojeva na bojama (pomoć za daltoniste)
 let musicOn = true;           // sviranje pozadinske glazbe
@@ -213,10 +214,12 @@ function targetForLevel(lvl) {
     return 9 + lvl;
 }
 
-// Aktivne boje za trenutni nivo = prvih (startColors + nivo-1) pravih boja + džoker.
+// Aktivne boje za trenutni nivo = prvih (startColors + nivo-1) pravih boja.
+// Džoker (WHITE) NIJE ovdje - ima svoju vlastitu, malu šansu u generateNext() da ne
+// "razvodnjava" postaje sve rjeđi/češći sam po sebi s brojem aktivnih boja.
 function rebuildActiveColors() {
     const count = Math.min(startColors + (level - 1), ALL_COLORS.length);
-    activeColors = ALL_COLORS.slice(0, count).concat([WHITE]);
+    activeColors = ALL_COLORS.slice(0, count);
 
     // jedna nova dual-boja otključa se svakim nivoom (od 2. nivoa nadalje)
     const dualCount = Math.min(Math.max(level - 1, 0), DUAL_PAIRS.length);
@@ -248,6 +251,8 @@ function generateNext() {
     } else if (activeDualColors.length > 0 && Math.random() < dualChance) {
         const pair = activeDualColors[Math.floor(Math.random() * activeDualColors.length)];
         incomingItem = { kind: "color", color: makeDualColor(pair[0], pair[1]) };
+    } else if (Math.random() < jokerChance) {
+        incomingItem = { kind: "color", color: WHITE };
     } else {
         incomingItem = { kind: "color", color: randomColor() };
     }
@@ -1341,6 +1346,7 @@ function setDifficulty(d, save) {
     startColors = DIFFICULTIES[d].startColors;
     powerChance = DIFFICULTIES[d].powerChance;
     dualChance = DIFFICULTIES[d].dualChance;
+    jokerChance = DIFFICULTIES[d].jokerChance;
     if (save) {
         try { localStorage.setItem("blockade_difficulty", d); } catch (e) {}
     }
