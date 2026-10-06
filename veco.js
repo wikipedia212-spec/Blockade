@@ -50,6 +50,9 @@ let cellTheme = "patterns";   // uzorak na kvadratićima: "plain" | "patterns"
 let showNumbers = true;       // prikaz brojeva na bojama (pomoć za daltoniste)
 let musicOn = true;           // sviranje pozadinske glazbe
 let gameMode = "classic";     // oblik polja: "classic" (kvadrati) | "time" (blitz)
+// deklarirano ovdje (rano) jer updateBgButtons() može biti pozvan iz setPremiumUnlocked()
+// još tijekom početnog učitavanja, prije nego skripta dođe do sekcije pozadinske animacije
+let bgMode = "dots";          // dots | water | constellation | warp | fireflies | ripples | topo | matrix | aurora | nebula | underwater | city | none
 
 // Oznake za džokera (kozmetika: koji skin je aktivan)
 let cosmeticJoker = "crown";   // "crown" | "star" | "diamond" | "bolt" | "christmas" | "halloween" | "valentine" | "easter"
@@ -2088,7 +2091,6 @@ openScreen(screenMain);
 // ===== POZADINSKA ANIMACIJA (više vrsta: točkice / voda / tamno) =====
 const bgCanvas = document.getElementById("bg");
 const bgCtx = (bgCanvas && bgCanvas.getContext) ? bgCanvas.getContext("2d") : null;
-let bgMode = "dots";          // dots | water | constellation | warp | fireflies | ripples | none
 let bgW = 0, bgH = 0;
 let bgDots = [];
 let bgNet = [];               // konstelacije
