@@ -819,6 +819,17 @@ h3 {
     color: #111;
 }
 
+/* zaključane (plaćene) ekskluzivne pozadine */
+.bg-row .bg-btn.locked {
+    opacity: 0.5;
+    filter: grayscale(0.4);
+    cursor: not-allowed;
+}
+
+.bg-row .bg-btn.locked:hover {
+    transform: none;
+}
+
 /* gumbi za temu (uzorak) kvadratića */
 .theme-row {
     display: flex;

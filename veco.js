@@ -1458,6 +1458,7 @@ function setPremiumUnlocked(on, save) {
         try { localStorage.setItem("blockade_premium", premiumUnlocked ? "1" : "0"); } catch (e) {}
     }
     updateCosmeticButtons();
+    updateBgButtons();
 }
 
 function loadPremiumUnlocked() {
@@ -1831,7 +1832,10 @@ document.querySelectorAll(".diff-btn").forEach(btn => {
 });
 
 document.querySelectorAll(".bg-btn").forEach(btn => {
-    btn.onclick = () => setBackground(btn.dataset.bg, true);
+    btn.onclick = () => {
+        if (btn.classList.contains("locked")) return;   // zaključano - prvo Unlock
+        setBackground(btn.dataset.bg, true);
+    };
 });
 
 document.querySelectorAll(".theme-btn").forEach(btn => {
@@ -2095,9 +2099,11 @@ let bgTopoPeaks = [];         // topografska karta - središta krugova
 let bgMatrixCols = [];        // matrix code - kolone
 const BG_TRAIL = 45;
 const bgStart = Date.now();
-const BG_MODES = ["dots", "water", "constellation", "warp", "fireflies", "ripples", "topo", "matrix", "none"];
-// redoslijed kroz koji pozadina rotira na svaki novi nivo
+const BG_MODES = ["dots", "water", "constellation", "warp", "fireflies", "ripples", "topo", "matrix", "none", "aurora", "nebula", "underwater", "city"];
+// redoslijed kroz koji pozadina rotira na svaki novi nivo (samo besplatne - plaćene se biraju ručno)
 const BG_CYCLE = ["dots", "water", "constellation", "warp", "fireflies", "ripples", "topo", "matrix"];
+// plaćene (ekskluzivne) pozadine - zaključane dok se ne klikne Unlock
+const PREMIUM_BACKGROUNDS = ["aurora", "nebula", "underwater", "city"];
 
 function bgResize() {
     if (!bgCanvas) return;
@@ -2201,6 +2207,9 @@ function bgInit(mode) {
     else if (mode === "ripples") bgMakeRipples();
     else if (mode === "topo") bgMakeTopo();
     else if (mode === "matrix") bgMakeMatrix();
+    else if (mode === "nebula") bgMakeNebula();
+    else if (mode === "underwater") bgMakeUnderwater();
+    else if (mode === "city") bgMakeCity();
 }
 
 // bijele točkice s tragom koji nestane
@@ -2507,6 +2516,182 @@ function bgDrawMatrix() {
     }
 }
 
+// ===== EKSKLUZIVNE (plaćene) POZADINE =====
+
+// aurora: valovite svjetlosne vrpce koje se preljevaju preko gornjeg dijela ekrana
+function bgDrawAurora(t) {
+    bgCtx.fillStyle = "#000";
+    bgCtx.fillRect(0, 0, bgW, bgH);
+
+    const colors = ["34,197,94", "59,130,246", "168,85,247", "34,211,238"];
+    for (let i = 0; i < 4; i++) {
+        const baseY = bgH * (0.18 + i * 0.09);
+        const amp = 50 + i * 22;
+        const freq = 0.0014 + i * 0.0004;
+        const phase = t * (0.15 + i * 0.05) + i * 2;
+        const color = colors[i % colors.length];
+
+        const grad = bgCtx.createLinearGradient(0, baseY - amp, 0, baseY + amp);
+        grad.addColorStop(0, "rgba(" + color + ",0)");
+        grad.addColorStop(0.5, "rgba(" + color + ",0.22)");
+        grad.addColorStop(1, "rgba(" + color + ",0)");
+
+        bgCtx.fillStyle = grad;
+        bgCtx.beginPath();
+        bgCtx.moveTo(0, baseY - amp);
+        for (let x = 0; x <= bgW; x += 24) {
+            const y = baseY + amp * Math.sin(x * freq + phase) * Math.sin(x * 0.0007 + t * 0.12);
+            bgCtx.lineTo(x, y);
+        }
+        bgCtx.lineTo(bgW, baseY + amp);
+        bgCtx.lineTo(bgW, baseY - amp * 2.4);
+        bgCtx.lineTo(0, baseY - amp * 2.4);
+        bgCtx.closePath();
+        bgCtx.fill();
+    }
+}
+
+// nebula/svemir: lebdeći obojeni oblaci (radijalni gradijenti) + zvijezde koje trepere
+let bgNebulaClouds = [];
+let bgNebulaStars = [];
+function bgMakeNebula() {
+    bgNebulaClouds = [];
+    const cloudCount = 5;
+    for (let i = 0; i < cloudCount; i++) {
+        bgNebulaClouds.push({
+            x: Math.random() * bgW,
+            y: Math.random() * bgH,
+            r: 120 + Math.random() * 180,
+            hue: Math.random() * 360,
+            vx: (Math.random() - 0.5) * 0.15,
+            vy: (Math.random() - 0.5) * 0.15
+        });
+    }
+    const starCount = Math.max(60, Math.round((bgW * bgH) / 9000));
+    bgNebulaStars = [];
+    for (let i = 0; i < starCount; i++) {
+        bgNebulaStars.push({
+            x: Math.random() * bgW,
+            y: Math.random() * bgH,
+            r: Math.random() * 1.4 + 0.4,
+            phase: Math.random() * Math.PI * 2,
+            freq: 0.5 + Math.random() * 1.5
+        });
+    }
+}
+
+function bgDrawNebula(t) {
+    bgCtx.fillStyle = "#000";
+    bgCtx.fillRect(0, 0, bgW, bgH);
+
+    for (const c of bgNebulaClouds) {
+        c.x += c.vx;
+        c.y += c.vy;
+        if (c.x < -c.r) c.x = bgW + c.r; else if (c.x > bgW + c.r) c.x = -c.r;
+        if (c.y < -c.r) c.y = bgH + c.r; else if (c.y > bgH + c.r) c.y = -c.r;
+
+        const grad = bgCtx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r);
+        grad.addColorStop(0, "hsla(" + c.hue + ",80%,60%,0.16)");
+        grad.addColorStop(1, "hsla(" + c.hue + ",80%,60%,0)");
+        bgCtx.fillStyle = grad;
+        bgCtx.beginPath();
+        bgCtx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+        bgCtx.fill();
+    }
+
+    for (const s of bgNebulaStars) {
+        const alpha = 0.3 + 0.7 * Math.abs(Math.sin(t * s.freq + s.phase));
+        bgCtx.fillStyle = "rgba(255,255,255," + alpha + ")";
+        bgCtx.beginPath();
+        bgCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        bgCtx.fill();
+    }
+}
+
+// podvodni svijet: mjehurići koji lebde prema vrhu + svjetlosne zrake
+let bgBubbles = [];
+function bgMakeUnderwater() {
+    const count = Math.max(25, Math.round((bgW * bgH) / 25000));
+    bgBubbles = [];
+    for (let i = 0; i < count; i++) {
+        bgBubbles.push({
+            x: Math.random() * bgW,
+            y: Math.random() * bgH + bgH,
+            r: 2 + Math.random() * 6,
+            speed: 0.4 + Math.random() * 1.2,
+            wob: Math.random() * Math.PI * 2
+        });
+    }
+}
+
+function bgDrawUnderwater(t) {
+    bgCtx.fillStyle = "#001824";
+    bgCtx.fillRect(0, 0, bgW, bgH);
+
+    bgCtx.fillStyle = "rgba(255,255,255,0.04)";
+    for (let i = 0; i < 5; i++) {
+        const x = (i / 5) * bgW + Math.sin(t * 0.1 + i) * 40;
+        bgCtx.beginPath();
+        bgCtx.moveTo(x - 30, 0);
+        bgCtx.lineTo(x + 30, 0);
+        bgCtx.lineTo(x + 90, bgH);
+        bgCtx.lineTo(x - 90, bgH);
+        bgCtx.closePath();
+        bgCtx.fill();
+    }
+
+    bgCtx.strokeStyle = "rgba(255,255,255,0.4)";
+    for (const b of bgBubbles) {
+        b.y -= b.speed;
+        b.x += Math.sin(t + b.wob) * 0.3;
+        if (b.y < -10) { b.y = bgH + 10; b.x = Math.random() * bgW; }
+        bgCtx.beginPath();
+        bgCtx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        bgCtx.stroke();
+    }
+}
+
+// grad noću: silueta zgrada s prozorima koji trepere
+let bgCityBuildings = [];
+function bgMakeCity() {
+    bgCityBuildings = [];
+    let x = 0;
+    while (x < bgW) {
+        const w = 40 + Math.random() * 60;
+        const h = 80 + Math.random() * (bgH * 0.5);
+        const cols = Math.max(2, Math.floor(w / 14));
+        const rows = Math.max(3, Math.floor(h / 18));
+        const windows = [];
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (Math.random() < 0.6) windows.push({ r: r, c: c, on: Math.random() < 0.7, phase: Math.random() * Math.PI * 2 });
+            }
+        }
+        bgCityBuildings.push({ x: x, w: w, h: h, cols: cols, rows: rows, windows: windows });
+        x += w + 2;
+    }
+}
+
+function bgDrawCity(t) {
+    bgCtx.fillStyle = "#05070d";
+    bgCtx.fillRect(0, 0, bgW, bgH);
+
+    for (const b of bgCityBuildings) {
+        const top = bgH - b.h;
+        bgCtx.fillStyle = "#0f1420";
+        bgCtx.fillRect(b.x, top, b.w, b.h);
+
+        const cw = b.w / b.cols, ch = b.h / b.rows;
+        for (const win of b.windows) {
+            if (!win.on) continue;
+            const flicker = 0.5 + 0.5 * Math.sin(t * 0.6 + win.phase);
+            const alpha = 0.5 + 0.5 * flicker;
+            bgCtx.fillStyle = "rgba(251,191,36," + (alpha * 0.8) + ")";
+            bgCtx.fillRect(b.x + win.c * cw + 2, top + win.r * ch + 2, cw - 4, ch - 4);
+        }
+    }
+}
+
 function bgLoop() {
     if (bgCtx) {
         const t = (Date.now() - bgStart) / 1000;
@@ -2518,6 +2703,10 @@ function bgLoop() {
         else if (bgMode === "ripples") bgDrawRipples(t);
         else if (bgMode === "topo") bgDrawTopo(t);
         else if (bgMode === "matrix") bgDrawMatrix();
+        else if (bgMode === "aurora") bgDrawAurora(t);
+        else if (bgMode === "nebula") bgDrawNebula(t);
+        else if (bgMode === "underwater") bgDrawUnderwater(t);
+        else if (bgMode === "city") bgDrawCity(t);
         else bgCtx.clearRect(0, 0, bgW, bgH);
     }
     requestAnimationFrame(bgLoop);
@@ -2525,12 +2714,15 @@ function bgLoop() {
 
 function updateBgButtons() {
     document.querySelectorAll(".bg-btn").forEach(b => {
+        const isPremium = b.classList.contains("premium");
+        b.classList.toggle("locked", isPremium && !premiumUnlocked);
         b.classList.toggle("active", b.dataset.bg === bgMode);
     });
 }
 
 function setBackground(mode, save) {
     if (BG_MODES.indexOf(mode) === -1) mode = "dots";
+    if (PREMIUM_BACKGROUNDS.indexOf(mode) !== -1 && !premiumUnlocked) return;   // zaključano dok se ne otključa
     bgMode = mode;
     if (bgCtx) {
         bgCtx.clearRect(0, 0, bgW, bgH);
