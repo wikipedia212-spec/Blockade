@@ -841,6 +841,60 @@ h3 {
     color: #111;
 }
 
+/* gumbi za kozmetiku (uzorak-tema, džoker skin, okvir kvadrata) - prelamaju se u više redova */
+.cosmetic-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin: 6px 0 18px;
+}
+
+.cosmetic-row .cosmetic-btn {
+    width: auto;
+    flex: 1 1 28%;
+    margin: 0;
+    padding: 10px 4px;
+    font-size: 14px;
+    background: #374151;
+    color: #fff;
+}
+
+.cosmetic-row .cosmetic-btn.active {
+    background: #22c55e;
+    color: #111;
+}
+
+/* ===== Okviri velikog kvadrata (kozmetika) ===== */
+.board.frame-gold .big-square {
+    border-color: #fbbf24;
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.45);
+}
+
+.board.frame-neon .big-square {
+    border-color: #22d3ee;
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.55);
+}
+
+.board.frame-wood .big-square {
+    border-color: #92400e;
+    border-width: 4px;
+}
+
+.board.frame-rainbow .big-square {
+    animation: frameRainbow 4s linear infinite;
+}
+
+@keyframes frameRainbow {
+    0%   { border-color: #ef4444; }
+    16%  { border-color: #f97316; }
+    33%  { border-color: #eab308; }
+    50%  { border-color: #22c55e; }
+    66%  { border-color: #3b82f6; }
+    83%  { border-color: #a855f7; }
+    100% { border-color: #ef4444; }
+}
+
 /* gumbi za uključivanje/isključivanje brojeva */
 .num-row {
     display: flex;

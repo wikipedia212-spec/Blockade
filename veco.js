@@ -51,17 +51,35 @@ let showNumbers = true;       // prikaz brojeva na bojama (pomoć za daltoniste)
 let musicOn = true;           // sviranje pozadinske glazbe
 let gameMode = "classic";     // oblik polja: "classic" (kvadrati) | "time" (blitz)
 
-// Oznaka džokera: outline jokerske kape/glave, okrenut naopačke (rotacija 180°)
-function jokerSvg() {
-    return '' +
-    '<svg class="joker-mark" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
+// Oznake za džokera (kozmetika: koji skin je aktivan)
+let cosmeticJoker = "crown";   // "crown" | "star" | "diamond" | "bolt"
+
+const JOKER_SKINS = {
+    // kruna, okrenuta naopačke (rotacija 180°) - originalni skin
+    crown: '<svg class="joker-mark" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
         '<g transform="rotate(180 50 50)" fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">' +
             '<path d="M16 72 L11 22 L33 56 L50 10 L67 56 L89 22 L84 72 Q50 82 16 72 Z"/>' +
             '<circle cx="11" cy="16" r="5"/>' +
             '<circle cx="50" cy="4" r="5"/>' +
             '<circle cx="89" cy="16" r="5"/>' +
         '</g>' +
-    '</svg>';
+    '</svg>',
+    star: '<svg class="joker-mark" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M50,5 L60.6,35.4 L92.8,36.1 L67.1,55.6 L76.5,86.4 L50,68 L23.5,86.4 L32.9,55.6 L7.2,36.1 L39.4,35.4 Z" ' +
+        'fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '</svg>',
+    diamond: '<svg class="joker-mark" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M50,5 L90,50 L50,95 L10,50 Z" ' +
+        'fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '</svg>',
+    bolt: '<svg class="joker-mark" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M58,5 L22,58 L46,58 L38,95 L82,38 L54,38 Z" ' +
+        'fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '</svg>'
+};
+
+function jokerSvg() {
+    return JOKER_SKINS[cosmeticJoker] || JOKER_SKINS.crown;
 }
 
 // Outline kapljice (ikona za moć koja pretvara polje u džoker)
@@ -281,9 +299,30 @@ const PATTERNS = [
     (s) => "<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M4 4 A 9 9 0 0 1 22 4'/><path d='M4 22 A 9 9 0 0 0 22 22'/></g>"
 ];
 
+// Alternativni "kozmetički" paketi uzoraka (zaseban izgled, ignoriraju nijansu boje - fiksan stil)
+const PATTERN_THEMES = {
+    classic: PATTERNS,
+    neon: [
+        (s) => "<g fill='none' stroke='#fff' stroke-width='1.3' opacity='0.85'><circle cx='13' cy='13' r='9'/><circle cx='13' cy='13' r='4.5'/></g>",
+        (s) => "<path d='M13 2 L16 10 L24 13 L16 16 L13 24 L10 16 L2 13 L10 10 Z' fill='none' stroke='#fff' stroke-width='1.3' opacity='0.85'/>",
+        (s) => "<g fill='none' stroke='#fff' stroke-width='1.3' opacity='0.85'><path d='M2 13 L24 13'/><path d='M13 2 L13 24'/></g>"
+    ],
+    galaxy: [
+        (s) => "<g fill='#fff' opacity='0.85'><circle cx='6' cy='6' r='1.3'/><circle cx='19' cy='9' r='0.9'/><circle cx='11' cy='16' r='1.6'/><circle cx='21' cy='21' r='1'/><circle cx='4' cy='20' r='0.9'/><circle cx='16' cy='3' r='0.8'/></g>"
+    ],
+    wood: [
+        (s) => "<g fill='none' stroke='#78350f' stroke-width='1.5' opacity='0.5'><path d='M0 6 Q13 2 26 6'/><path d='M0 14 Q13 10 26 14'/><path d='M0 22 Q13 18 26 22'/></g>"
+    ],
+    pixel: [
+        (s) => "<g fill='#fff' opacity='0.45'><rect x='2' y='2' width='6' height='6'/><rect x='16' y='2' width='6' height='6'/><rect x='9' y='9' width='6' height='6'/><rect x='2' y='16' width='6' height='6'/><rect x='16' y='16' width='6' height='6'/></g>"
+    ]
+};
+let cosmeticPattern = "classic";   // kozmetika: koji paket uzoraka se koristi
+
 function patternForColor(color) {
+    const arr = PATTERN_THEMES[cosmeticPattern] || PATTERNS;
     const idx = ALL_COLORS.indexOf(color);
-    return PATTERNS[(idx >= 0 ? idx : 0) % PATTERNS.length];
+    return arr[(idx >= 0 ? idx : 0) % arr.length];
 }
 
 // nijansa uzorka: tamnija na svijetlim bojama, svjetlija na tamnima
@@ -1236,6 +1275,75 @@ function updateThemeButtons() {
     });
 }
 
+// ===== KOZMETIKA (uzorak-tema, džoker skin, okvir kvadrata) =====
+function setCosmeticPattern(p, save) {
+    if (!PATTERN_THEMES[p]) p = "classic";
+    cosmeticPattern = p;
+    if (save) {
+        try { localStorage.setItem("blockade_cosmetic_pattern", p); } catch (e) {}
+    }
+    updateCosmeticButtons();
+    renderBoard();
+    renderStorage();
+    renderIncoming();
+}
+
+function loadCosmeticPattern() {
+    let p = "classic";
+    try { p = localStorage.getItem("blockade_cosmetic_pattern") || "classic"; } catch (e) {}
+    cosmeticPattern = PATTERN_THEMES[p] ? p : "classic";
+}
+
+function setCosmeticJoker(j, save) {
+    if (!JOKER_SKINS[j]) j = "crown";
+    cosmeticJoker = j;
+    if (save) {
+        try { localStorage.setItem("blockade_cosmetic_joker", j); } catch (e) {}
+    }
+    updateCosmeticButtons();
+    renderBoard();
+    renderStorage();
+    renderIncoming();
+}
+
+function loadCosmeticJoker() {
+    let j = "crown";
+    try { j = localStorage.getItem("blockade_cosmetic_joker") || "crown"; } catch (e) {}
+    cosmeticJoker = JOKER_SKINS[j] ? j : "crown";
+}
+
+const FRAME_SKINS = ["default", "gold", "neon", "wood", "rainbow"];
+let cosmeticFrame = "default";   // okvir velikog kvadrata
+
+function applyCosmeticFrame() {
+    FRAME_SKINS.forEach(f => boardDiv.classList.toggle("frame-" + f, f !== "default" && f === cosmeticFrame));
+}
+
+function setCosmeticFrame(f, save) {
+    if (FRAME_SKINS.indexOf(f) === -1) f = "default";
+    cosmeticFrame = f;
+    applyCosmeticFrame();
+    if (save) {
+        try { localStorage.setItem("blockade_cosmetic_frame", f); } catch (e) {}
+    }
+    updateCosmeticButtons();
+}
+
+function loadCosmeticFrame() {
+    let f = "default";
+    try { f = localStorage.getItem("blockade_cosmetic_frame") || "default"; } catch (e) {}
+    cosmeticFrame = FRAME_SKINS.indexOf(f) !== -1 ? f : "default";
+    applyCosmeticFrame();
+}
+
+function updateCosmeticButtons() {
+    document.querySelectorAll(".cosmetic-btn").forEach(btn => {
+        if (btn.dataset.pattern) btn.classList.toggle("active", btn.dataset.pattern === cosmeticPattern);
+        if (btn.dataset.joker) btn.classList.toggle("active", btn.dataset.joker === cosmeticJoker);
+        if (btn.dataset.frame) btn.classList.toggle("active", btn.dataset.frame === cosmeticFrame);
+    });
+}
+
 // ===== BROJEVI NA BOJAMA =====
 function setNumbers(on, save) {
     showNumbers = !!on;
@@ -1598,6 +1706,14 @@ document.querySelectorAll(".theme-btn").forEach(btn => {
     btn.onclick = () => setCellTheme(btn.dataset.theme, true);
 });
 
+document.querySelectorAll(".cosmetic-btn").forEach(btn => {
+    btn.onclick = () => {
+        if (btn.dataset.pattern) setCosmeticPattern(btn.dataset.pattern, true);
+        else if (btn.dataset.joker) setCosmeticJoker(btn.dataset.joker, true);
+        else if (btn.dataset.frame) setCosmeticFrame(btn.dataset.frame, true);
+    };
+});
+
 document.querySelectorAll(".num-btn").forEach(btn => {
     btn.onclick = () => setNumbers(btn.dataset.num === "on", true);
 });
@@ -1810,6 +1926,10 @@ document.addEventListener("click", (e) => {
 loadHighScore();
 loadDifficulty();
 loadCellTheme();
+loadCosmeticPattern();
+loadCosmeticJoker();
+loadCosmeticFrame();
+updateCosmeticButtons();
 loadNumbers();
 loadMusic();
 loadGameMode();
