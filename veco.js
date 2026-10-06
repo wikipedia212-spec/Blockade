@@ -2653,11 +2653,29 @@ function bgDrawUnderwater(t) {
     }
 }
 
-// grad noću: dva sloja zgrada (daleke maglovite + bliske s prozorima) - dojam dubine.
-// Prozori se nasumično pale/gase tijekom vremena (ne samo titraju jačinom).
+// grad noću: mjesec + oblaci + dva sloja zgrada (daleke maglovite + bliske s prozorima) + bandere.
+// Prozori se polako, nasumično pale/gase tijekom vremena (ne samo titraju jačinom).
 let bgCityBuildings = [];
 let bgCityFar = [];
+let bgCityClouds = [];
+let bgStreetLamps = [];
+let bgMoon = { x: 0, y: 0 };
+
 function bgMakeCity() {
+    bgMoon = { x: bgW * 0.82, y: bgH * 0.16 };
+
+    // oblaci koji sporo plove preko neba
+    bgCityClouds = [];
+    const cloudCount = 4;
+    for (let i = 0; i < cloudCount; i++) {
+        bgCityClouds.push({
+            x: Math.random() * bgW,
+            y: bgH * (0.08 + Math.random() * 0.22),
+            scale: 0.7 + Math.random() * 1.1,
+            vx: 0.04 + Math.random() * 0.08
+        });
+    }
+
     // daleki, maglovit sloj - manje, gušće zgrade u pozadini
     bgCityFar = [];
     let fx = 0;
@@ -2689,7 +2707,7 @@ function bgMakeCity() {
                         r: r, c: c,
                         on: Math.random() < 0.7,
                         phase: Math.random() * Math.PI * 2,
-                        nextToggle: 1 + Math.random() * 14
+                        nextToggle: 8 + Math.random() * 40
                     });
                 }
             }
@@ -2697,11 +2715,55 @@ function bgMakeCity() {
         bgCityBuildings.push({ x: x, w: w, h: h, cols: cols, rows: rows, windows: windows });
         x += w + 2;
     }
+
+    // bandere na ulici, jednako razmaknute
+    bgStreetLamps = [];
+    const lampSpacing = 140;
+    for (let lx = lampSpacing / 2; lx < bgW; lx += lampSpacing) {
+        bgStreetLamps.push({ x: lx, phase: Math.random() * Math.PI * 2 });
+    }
+}
+
+function bgDrawCloudShape(x, y, scale) {
+    bgCtx.beginPath();
+    bgCtx.ellipse(x, y, 40 * scale, 14 * scale, 0, 0, Math.PI * 2);
+    bgCtx.ellipse(x - 26 * scale, y + 4 * scale, 24 * scale, 11 * scale, 0, 0, Math.PI * 2);
+    bgCtx.ellipse(x + 28 * scale, y + 3 * scale, 26 * scale, 12 * scale, 0, 0, Math.PI * 2);
+    bgCtx.fill();
 }
 
 function bgDrawCity(t) {
     bgCtx.fillStyle = "#05070d";
     bgCtx.fillRect(0, 0, bgW, bgH);
+
+    // mjesec + blagi sjaj
+    const moonGlow = bgCtx.createRadialGradient(bgMoon.x, bgMoon.y, 0, bgMoon.x, bgMoon.y, 78);
+    moonGlow.addColorStop(0, "rgba(250,250,230,0.22)");
+    moonGlow.addColorStop(1, "rgba(250,250,230,0)");
+    bgCtx.fillStyle = moonGlow;
+    bgCtx.beginPath();
+    bgCtx.arc(bgMoon.x, bgMoon.y, 78, 0, Math.PI * 2);
+    bgCtx.fill();
+
+    bgCtx.fillStyle = "#f5f3e7";
+    bgCtx.beginPath();
+    bgCtx.arc(bgMoon.x, bgMoon.y, 26, 0, Math.PI * 2);
+    bgCtx.fill();
+    bgCtx.fillStyle = "rgba(200,200,180,0.35)";
+    bgCtx.beginPath();
+    bgCtx.arc(bgMoon.x - 8, bgMoon.y - 5, 5, 0, Math.PI * 2);
+    bgCtx.fill();
+    bgCtx.beginPath();
+    bgCtx.arc(bgMoon.x + 7, bgMoon.y + 8, 3.5, 0, Math.PI * 2);
+    bgCtx.fill();
+
+    // oblaci koji sporo plove preko neba
+    bgCtx.fillStyle = "rgba(200,200,215,0.16)";
+    for (const c of bgCityClouds) {
+        c.x += c.vx;
+        if (c.x > bgW + 90) c.x = -90;
+        bgDrawCloudShape(c.x, c.y, c.scale);
+    }
 
     // daleki sloj: maglovita, plavičasta silueta + tek pokoje udaljeno svjetlo koje rijetko trepne
     for (const b of bgCityFar) {
@@ -2715,7 +2777,7 @@ function bgDrawCity(t) {
         }
     }
 
-    // bliski sloj: glavne zgrade, prozori se nasumično pale/gase + blago titraju kad su upaljeni
+    // bliski sloj: glavne zgrade, prozori se polako i nasumično pale/gase + blago titraju kad su upaljeni
     for (const b of bgCityBuildings) {
         const top = bgH - b.h;
         bgCtx.fillStyle = "#0f1420";
@@ -2725,13 +2787,41 @@ function bgDrawCity(t) {
         for (const win of b.windows) {
             if (t > win.nextToggle) {
                 win.on = !win.on;
-                win.nextToggle = t + 1 + Math.random() * 14;
+                win.nextToggle = t + 8 + Math.random() * 40;
             }
             if (!win.on) continue;
             const twinkle = 0.85 + 0.15 * Math.sin(t * 2 + win.phase);
             bgCtx.fillStyle = "rgba(251,191,36," + (0.78 * twinkle) + ")";
             bgCtx.fillRect(b.x + win.c * cw + 2, top + win.r * ch + 2, cw - 4, ch - 4);
         }
+    }
+
+    // bandere - stup + ruka + žarulja sa sjajem, u prvom planu
+    for (const lamp of bgStreetLamps) {
+        const poleTop = bgH - 70;
+        bgCtx.strokeStyle = "rgba(15,15,20,0.9)";
+        bgCtx.lineWidth = 3;
+        bgCtx.beginPath();
+        bgCtx.moveTo(lamp.x, bgH);
+        bgCtx.lineTo(lamp.x, poleTop);
+        bgCtx.lineTo(lamp.x + 10, poleTop - 6);
+        bgCtx.stroke();
+
+        const lightX = lamp.x + 10, lightY = poleTop - 6;
+        const glowPulse = 0.85 + 0.15 * Math.sin(t * 1.2 + lamp.phase);
+
+        const lampGlow = bgCtx.createRadialGradient(lightX, lightY, 0, lightX, lightY, 26);
+        lampGlow.addColorStop(0, "rgba(251,191,36," + (0.35 * glowPulse) + ")");
+        lampGlow.addColorStop(1, "rgba(251,191,36,0)");
+        bgCtx.fillStyle = lampGlow;
+        bgCtx.beginPath();
+        bgCtx.arc(lightX, lightY, 26, 0, Math.PI * 2);
+        bgCtx.fill();
+
+        bgCtx.fillStyle = "rgba(251,191,36," + (0.9 * glowPulse) + ")";
+        bgCtx.beginPath();
+        bgCtx.arc(lightX, lightY, 3.5, 0, Math.PI * 2);
+        bgCtx.fill();
     }
 }
 
