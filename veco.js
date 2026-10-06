@@ -77,26 +77,41 @@ const JOKER_SKINS = {
         '<path d="M58,5 L22,58 L46,58 L38,95 L82,38 L54,38 Z" ' +
         'fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>' +
     '</svg>',
-    // božićno drvce + stablo
+    // božićno drvce (ostaje fiksno) + snijeg koji pada preko njega
     christmas: '<svg class="joker-mark anim-sway" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
         '<path d="M50,8 L68,35 L58,35 L74,58 L62,58 L80,85 L20,85 L38,58 L26,58 L42,35 L32,35 Z M42,85 L58,85 L58,95 L42,95 Z" ' +
         'fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>' +
+        '<g class="joker-snow">' +
+            '<circle class="snowdot" cx="8" cy="0" r="3" style="animation-delay:0s"/>' +
+            '<circle class="snowdot" cx="30" cy="0" r="2.2" style="animation-delay:0.7s"/>' +
+            '<circle class="snowdot" cx="52" cy="0" r="3" style="animation-delay:1.4s"/>' +
+            '<circle class="snowdot" cx="74" cy="0" r="2.4" style="animation-delay:2.1s"/>' +
+            '<circle class="snowdot" cx="92" cy="0" r="2.8" style="animation-delay:2.8s"/>' +
+        '</g>' +
     '</svg>',
-    // duh (Halloween)
-    halloween: '<svg class="joker-mark anim-float" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
+    // duh koji se pojavljuje i nestaje, s ljutim očima
+    halloween: '<svg class="joker-mark anim-ghostly" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
         '<path d="M50,8 C72,8 88,26 88,50 L88,85 L76,72 L64,85 L50,72 L36,85 L24,72 L12,85 L12,50 C12,26 28,8 50,8 Z" ' +
         'fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>' +
+        '<path d="M26,38 L42,46 M74,38 L58,46" fill="none" stroke="#1f2937" stroke-width="5" stroke-linecap="round"/>' +
+        '<path d="M36,64 Q50,56 64,64" fill="none" stroke="#1f2937" stroke-width="4" stroke-linecap="round"/>' +
     '</svg>',
     // srce (Valentinovo)
     valentine: '<svg class="joker-mark anim-heartbeat" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
         '<path d="M50,88 C20,62 5,42 5,26 C5,11 18,3 30,3 C40,3 48,9 50,19 C52,9 60,3 70,3 C82,3 95,11 95,26 C95,42 80,62 50,88 Z" ' +
         'fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>' +
     '</svg>',
-    // jaje (Uskrs)
-    easter: '<svg class="joker-mark anim-hop" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
-        '<path d="M50,5 C70,5 85,40 85,65 C85,85 70,95 50,95 C30,95 15,85 15,65 C15,40 30,5 50,5 Z" ' +
-        'fill="none" stroke="#1f2937" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>' +
-        '<path d="M22,46 Q36,52 50,44 T78,50" fill="none" stroke="#1f2937" stroke-width="4" stroke-linecap="round"/>' +
+    // jaje iz kojeg periodički izlazi pilić
+    easter: '<svg class="joker-mark" viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg">' +
+        '<g class="joker-chick">' +
+            '<circle cx="50" cy="35" r="13" fill="#fde047" stroke="#1f2937" stroke-width="4"/>' +
+            '<path d="M36,34 L26,37 L36,40 Z" fill="#f97316"/>' +
+            '<circle cx="45" cy="30" r="2" fill="#1f2937"/>' +
+            '<circle cx="57" cy="30" r="2" fill="#1f2937"/>' +
+        '</g>' +
+        '<path d="M50,15 C68,15 82,45 82,65 C82,85 68,95 50,95 C32,95 18,85 18,65 C18,45 32,15 50,15 Z" ' +
+        'fill="#fff" stroke="#1f2937" stroke-width="6" stroke-linejoin="round"/>' +
+        '<path d="M30,19 L38,27 L30,33 L40,41" fill="none" stroke="#1f2937" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' +
     '</svg>'
 };
 
@@ -321,35 +336,89 @@ const PATTERNS = [
     (s) => "<g fill='none' stroke='" + s + "' stroke-width='2'><path d='M4 4 A 9 9 0 0 1 22 4'/><path d='M4 22 A 9 9 0 0 0 22 22'/></g>"
 ];
 
-// Alternativni "kozmetički" paketi uzoraka (zaseban izgled, ignoriraju nijansu boje - fiksan stil)
+// Alternativni "kozmetički" paketi uzoraka (zaseban izgled, ignoriraju nijansu boje - fiksan stil).
+// Svaki paket ima više motiva (kao i klasični) da ne bude samo jedan ponavljajući uzorak.
 const PATTERN_THEMES = {
     classic: PATTERNS,
     neon: [
         (s) => "<g fill='none' stroke='#fff' stroke-width='1.3' opacity='0.85'><circle cx='13' cy='13' r='9'/><circle cx='13' cy='13' r='4.5'/></g>",
         (s) => "<path d='M13 2 L16 10 L24 13 L16 16 L13 24 L10 16 L2 13 L10 10 Z' fill='none' stroke='#fff' stroke-width='1.3' opacity='0.85'/>",
-        (s) => "<g fill='none' stroke='#fff' stroke-width='1.3' opacity='0.85'><path d='M2 13 L24 13'/><path d='M13 2 L13 24'/></g>"
+        (s) => "<g fill='none' stroke='#fff' stroke-width='1.3' opacity='0.85'><path d='M2 13 L24 13'/><path d='M13 2 L13 24'/></g>",
+        (s) => "<path d='M13 3 L23 22 L3 22 Z' fill='none' stroke='#fff' stroke-width='1.3' opacity='0.85'/>",
+        (s) => "<polygon points='13,2 22,7.5 22,18.5 13,24 4,18.5 4,7.5' fill='none' stroke='#fff' stroke-width='1.3' opacity='0.85'/>",
+        (s) => "<path d='M4 4 L13 13 L7 13 L22 22' fill='none' stroke='#fff' stroke-width='1.3' opacity='0.85'/>",
+        (s) => "<rect x='7' y='7' width='12' height='12' transform='rotate(45 13 13)' fill='none' stroke='#fff' stroke-width='1.3' opacity='0.85'/>",
+        (s) => "<path d='M13 13 Q13 8 18 8 Q23 8 23 14 Q23 22 14 22 Q4 22 4 11' fill='none' stroke='#fff' stroke-width='1.3' opacity='0.85'/>",
+        (s) => "<path d='M1 13 Q7 6 13 13 T25 13' fill='none' stroke='#fff' stroke-width='1.3' opacity='0.85'/>",
+        (s) => "<g fill='none' stroke='#fff' stroke-width='1.3' opacity='0.85'><circle cx='13' cy='13' r='8'/><circle cx='13' cy='13' r='1.5' fill='#fff'/></g>"
     ],
     galaxy: [
-        (s) => "<g fill='#fff' opacity='0.85'><circle cx='6' cy='6' r='1.3'/><circle cx='19' cy='9' r='0.9'/><circle cx='11' cy='16' r='1.6'/><circle cx='21' cy='21' r='1'/><circle cx='4' cy='20' r='0.9'/><circle cx='16' cy='3' r='0.8'/></g>"
+        (s) => "<g fill='#fff' opacity='0.85'><circle cx='6' cy='6' r='1.3'/><circle cx='19' cy='9' r='0.9'/><circle cx='11' cy='16' r='1.6'/><circle cx='21' cy='21' r='1'/><circle cx='4' cy='20' r='0.9'/><circle cx='16' cy='3' r='0.8'/></g>",
+        (s) => "<path d='M17 4 A9 9 0 1 0 17 22 A7 7 0 1 1 17 4 Z' fill='#fff' opacity='0.8'/>",
+        (s) => "<g fill='none' stroke='#fff' opacity='0.8' stroke-width='1.2'><circle cx='13' cy='13' r='5' fill='#fff'/><ellipse cx='13' cy='13' rx='11' ry='3'/></g>",
+        (s) => "<g fill='#fff' opacity='0.8' stroke='#fff' stroke-width='1.3' stroke-linecap='round'><path d='M4 4 L14 14' fill='none'/><circle cx='16' cy='16' r='2' stroke='none'/></g>",
+        (s) => "<g stroke='#fff' stroke-width='0.8' opacity='0.7' fill='#fff'><circle cx='5' cy='6' r='1.2'/><circle cx='15' cy='4' r='1.2'/><circle cx='21' cy='14' r='1.2'/><circle cx='10' cy='20' r='1.2'/><path d='M5 6 L15 4 L21 14 L10 20 Z' fill='none'/></g>",
+        (s) => "<path d='M13 1 L15 11 L25 13 L15 15 L13 25 L11 15 L1 13 L11 11 Z' fill='#fff' opacity='0.75'/>",
+        (s) => "<g fill='#fff' opacity='0.8'><circle cx='3' cy='13' r='1'/><circle cx='9' cy='5' r='0.8'/><circle cx='17' cy='9' r='1.3'/><circle cx='23' cy='19' r='0.9'/><circle cx='13' cy='23' r='1'/></g>",
+        (s) => "<path d='M13 13 Q17 9 21 13 Q23 17 18 19 Q11 21 8 15 Q6 9 13 6' fill='none' stroke='#fff' stroke-width='1.2' opacity='0.7'/>"
     ],
     wood: [
-        (s) => "<g fill='none' stroke='#78350f' stroke-width='1.5' opacity='0.5'><path d='M0 6 Q13 2 26 6'/><path d='M0 14 Q13 10 26 14'/><path d='M0 22 Q13 18 26 22'/></g>"
+        (s) => "<g fill='none' stroke='#78350f' stroke-width='1.5' opacity='0.5'><path d='M0 6 Q13 2 26 6'/><path d='M0 14 Q13 10 26 14'/><path d='M0 22 Q13 18 26 22'/></g>",
+        (s) => "<g fill='none' stroke='#78350f' stroke-width='1.3' opacity='0.5'><ellipse cx='13' cy='13' rx='4' ry='3'/><ellipse cx='13' cy='13' rx='7' ry='5'/></g>",
+        (s) => "<g fill='none' stroke='#78350f' stroke-width='1.3' opacity='0.5'><path d='M-2 4 Q13 10 28 4'/><path d='M-2 14 Q13 20 28 14'/><path d='M-2 24 Q13 30 28 24'/></g>",
+        (s) => "<g fill='none' stroke='#78350f' stroke-width='1.3' opacity='0.5'><path d='M6 0 Q2 13 6 26'/><path d='M14 0 Q10 13 14 26'/><path d='M22 0 Q18 13 22 26'/></g>",
+        (s) => "<g fill='none' stroke='#78350f' stroke-width='1' opacity='0.4'><path d='M0 8 L26 8 M0 18 L26 18 M8 0 L8 26 M18 0 L18 26'/></g>",
+        (s) => "<g fill='none' stroke='#78350f' stroke-width='1.2' opacity='0.5'><path d='M0 4 Q13 1 26 4'/><path d='M0 9 Q13 6 26 9'/><path d='M0 14 Q13 11 26 14'/><path d='M0 19 Q13 16 26 19'/><path d='M0 24 Q13 21 26 24'/></g>",
+        (s) => "<g fill='none' stroke='#78350f' stroke-width='1.3' opacity='0.5'><path d='M0 6 Q13 3 26 6'/><path d='M0 20 Q13 17 26 20'/><ellipse cx='13' cy='13' rx='4' ry='3'/></g>"
     ],
     pixel: [
-        (s) => "<g fill='#fff' opacity='0.45'><rect x='2' y='2' width='6' height='6'/><rect x='16' y='2' width='6' height='6'/><rect x='9' y='9' width='6' height='6'/><rect x='2' y='16' width='6' height='6'/><rect x='16' y='16' width='6' height='6'/></g>"
+        (s) => "<g fill='#fff' opacity='0.45'><rect x='2' y='2' width='6' height='6'/><rect x='16' y='2' width='6' height='6'/><rect x='9' y='9' width='6' height='6'/><rect x='2' y='16' width='6' height='6'/><rect x='16' y='16' width='6' height='6'/></g>",
+        (s) => "<g fill='#fff' opacity='0.45'><rect x='0' y='0' width='6' height='6'/><rect x='20' y='0' width='6' height='6'/><rect x='0' y='20' width='6' height='6'/><rect x='20' y='20' width='6' height='6'/></g>",
+        (s) => "<g fill='#fff' opacity='0.45'><rect x='10' y='3' width='6' height='6'/><rect x='10' y='17' width='6' height='6'/><rect x='3' y='10' width='6' height='6'/><rect x='17' y='10' width='6' height='6'/></g>",
+        (s) => "<rect x='8' y='8' width='10' height='10' fill='#fff' opacity='0.4'/>",
+        (s) => "<g fill='#fff' opacity='0.45'><rect x='2' y='18' width='6' height='6'/><rect x='8' y='12' width='6' height='6'/><rect x='14' y='6' width='6' height='6'/><rect x='20' y='0' width='6' height='6'/></g>",
+        (s) => "<g fill='#fff' opacity='0.45'><rect x='6' y='6' width='4' height='4'/><rect x='16' y='6' width='4' height='4'/><rect x='2' y='10' width='4' height='4'/><rect x='10' y='10' width='4' height='4'/><rect x='20' y='10' width='4' height='4'/><rect x='6' y='14' width='4' height='4'/><rect x='16' y='14' width='4' height='4'/><rect x='10' y='18' width='4' height='4'/></g>",
+        (s) => "<g fill='#fff' opacity='0.4'><rect x='2' y='2' width='3' height='3'/><rect x='14' y='4' width='3' height='3'/><rect x='21' y='12' width='3' height='3'/><rect x='6' y='16' width='3' height='3'/><rect x='17' y='20' width='3' height='3'/></g>"
     ],
     // praznični paketi (plaćeni)
     christmas: [
-        (s) => "<g stroke='#fff' stroke-width='1.3' opacity='0.8' fill='none'><path d='M13 2 L13 24 M2 13 L24 13 M5 5 L21 21 M21 5 L5 21'/></g>"
+        (s) => "<g stroke='#fff' stroke-width='1.3' opacity='0.8' fill='none'><path d='M13 2 L13 24 M2 13 L24 13 M5 5 L21 21 M21 5 L5 21'/></g>",
+        (s) => "<g stroke='#dc2626' stroke-width='3' opacity='0.5'><path d='M0 6 L6 0 M6 16 L16 6 M16 26 L26 16'/></g>",
+        (s) => "<g fill='none' stroke='#16a34a' stroke-width='1.5' opacity='0.6'><path d='M13 4 C18 8 18 14 13 18 C8 14 8 8 13 4 Z'/><circle cx='13' cy='21' r='2.2' fill='#dc2626' stroke='none'/></g>",
+        (s) => "<path d='M13 4 C9 4 7 9 7 14 L5 19 L21 19 L19 14 C19 9 17 4 13 4 Z M10 20 Q13 24 16 20' fill='none' stroke='#eab308' stroke-width='1.5' opacity='0.6'/>",
+        (s) => "<g fill='none' stroke='#dc2626' stroke-width='1.5' opacity='0.6'><rect x='5' y='10' width='16' height='12'/><path d='M5 14 L21 14 M13 10 L13 22'/></g>",
+        (s) => "<path d='M13 3 L15.5 10.5 L23 13 L15.5 15.5 L13 23 L10.5 15.5 L3 13 L10.5 10.5 Z' fill='#eab308' opacity='0.6'/>",
+        (s) => "<path d='M9 2 L17 2 L17 14 Q22 14 22 19 Q22 24 16 24 Q10 24 10 18 L9 2 Z' fill='none' stroke='#dc2626' stroke-width='1.5' opacity='0.6'/>",
+        (s) => "<g fill='none' stroke='#16a34a' stroke-width='1.5' opacity='0.6'><circle cx='13' cy='15' r='8'/><path d='M13 3 L13 7 M10 3 L16 3'/></g>"
     ],
     halloween: [
-        (s) => "<g fill='#f97316' opacity='0.6'><path d='M13 10 C10 6 4 6 2 10 C6 11 9 13 10 16 C7 16 4 18 3 21 C7 21 10 19 13 16 C16 19 19 21 23 21 C22 18 19 16 16 16 C17 13 20 11 24 10 C22 6 16 6 13 10 Z'/></g>"
+        (s) => "<g fill='#f97316' opacity='0.6'><path d='M13 10 C10 6 4 6 2 10 C6 11 9 13 10 16 C7 16 4 18 3 21 C7 21 10 19 13 16 C16 19 19 21 23 21 C22 18 19 16 16 16 C17 13 20 11 24 10 C22 6 16 6 13 10 Z'/></g>",
+        (s) => "<g opacity='0.55'><ellipse cx='13' cy='15' rx='10' ry='8' fill='#f97316'/><path d='M8 13 L11 16 L8 16 Z M18 13 L15 16 L18 16 Z M9 20 Q13 23 17 20' fill='none' stroke='#1f2937' stroke-width='1.3'/></g>",
+        (s) => "<g fill='none' stroke='#1f2937' stroke-width='1.3' opacity='0.6'><circle cx='13' cy='13' r='3' fill='#1f2937'/><path d='M13 10 L8 4 M13 10 L18 4 M13 16 L8 22 M13 16 L18 22 M10 13 L3 9 M10 13 L3 17 M16 13 L23 9 M16 13 L23 17'/></g>",
+        (s) => "<g fill='none' stroke='#9ca3af' stroke-width='0.8' opacity='0.5'><path d='M13 2 L13 24 M2 13 L24 13 M5 5 L21 21 M21 5 L5 21'/><circle cx='13' cy='13' r='4'/><circle cx='13' cy='13' r='8'/></g>",
+        (s) => "<path d='M7 24 L7 12 Q7 5 13 5 Q19 5 19 12 L19 24 Z M10 11 L16 11 M13 8 L13 14' fill='none' stroke='#9ca3af' stroke-width='1.5' opacity='0.5'/>",
+        (s) => "<path d='M13 3 L20 14 L6 14 Z M6 14 L20 14 L17 19 L9 19 Z M9 19 L17 19 L14 24 L12 24 Z' fill='#f97316' opacity='0.5'/>",
+        (s) => "<path d='M19 5 A7 7 0 1 0 19 19 A5.5 5.5 0 1 1 19 5 Z' fill='#9ca3af' opacity='0.5'/>",
+        (s) => "<path d='M6 22 L6 14 Q6 9 13 9 Q20 9 20 14 L20 22 L17 19 L15 22 L13 19 L11 22 L9 19 Z M6 14 L3 10 L8 11 Z M20 14 L23 10 L18 11 Z' fill='#1f2937' opacity='0.55'/>"
     ],
     valentine: [
-        (s) => "<g fill='#fff' opacity='0.55'><path d='M8 7 C6 5 3 6 3 9 C3 12 8 15 8 15 C8 15 13 12 13 9 C13 6 10 5 8 7 Z'/><path d='M20 16 C18 14 15 15 15 18 C15 20 20 23 20 23 C20 23 25 20 25 18 C25 15 22 14 20 16 Z'/></g>"
+        (s) => "<g fill='#fff' opacity='0.55'><path d='M8 7 C6 5 3 6 3 9 C3 12 8 15 8 15 C8 15 13 12 13 9 C13 6 10 5 8 7 Z'/><path d='M20 16 C18 14 15 15 15 18 C15 20 20 23 20 23 C20 23 25 20 25 18 C25 15 22 14 20 16 Z'/></g>",
+        (s) => "<g fill='none' stroke='#ec4899' stroke-width='1.5' opacity='0.6'><path d='M2 24 L22 4 M22 4 L15 4 M22 4 L22 11'/><circle cx='5' cy='21' r='2.5'/></g>",
+        (s) => "<g fill='none' stroke='#ec4899' stroke-width='1.3' opacity='0.6'><path d='M13 6 C9 6 8 10 11 11 C7 12 7 17 13 17 C19 17 19 12 15 11 C18 10 17 6 13 6 Z'/><path d='M13 17 L13 24 M13 20 L9 22 M13 20 L17 22'/></g>",
+        (s) => "<g fill='none' stroke='#ec4899' stroke-width='1.3' opacity='0.6'><rect x='4' y='8' width='18' height='13'/><path d='M4 8 L13 16 L22 8'/></g>",
+        (s) => "<path d='M13 13 C9 9 3 10 3 14 C3 18 9 17 13 13 C17 17 23 18 23 14 C23 10 17 9 13 13 Z' fill='none' stroke='#ec4899' stroke-width='1.3' opacity='0.6'/>",
+        (s) => "<g fill='#ec4899' opacity='0.5'><path d='M9 8 C7 6 3 7 3 10 C3 13 9 16 9 16 C9 16 15 13 15 10 C15 7 11 6 9 8 Z'/><path d='M19 14 C17 12 13 13 13 16 C13 19 19 22 19 22 C19 22 25 19 25 16 C25 13 21 12 19 14 Z'/></g>",
+        (s) => "<path d='M13 10 C9 8 5 10 5 13 C5 15 8 15 10 14 C8 16 6 18 7 20 C9 18 11 17 13 18 C15 17 17 18 19 20 C20 18 18 16 16 14 C18 15 21 15 21 13 C21 10 17 8 13 10 Z' fill='#ec4899' opacity='0.55'/>"
     ],
     easter: [
-        (s) => "<g fill='#fff' opacity='0.5'><ellipse cx='7' cy='8' rx='3' ry='4'/><ellipse cx='20' cy='18' rx='2.5' ry='3.5'/><ellipse cx='17' cy='6' rx='2' ry='2.8'/></g>"
+        (s) => "<g fill='#fff' opacity='0.5'><ellipse cx='7' cy='8' rx='3' ry='4'/><ellipse cx='20' cy='18' rx='2.5' ry='3.5'/><ellipse cx='17' cy='6' rx='2' ry='2.8'/></g>",
+        (s) => "<g fill='none' stroke='#fff' stroke-width='1.5' opacity='0.6'><ellipse cx='9' cy='8' rx='3' ry='8' transform='rotate(-15 9 8)'/><ellipse cx='17' cy='8' rx='3' ry='8' transform='rotate(15 17 8)'/></g>",
+        (s) => "<g fill='#fff' opacity='0.5'><circle cx='13' cy='8' r='3'/><circle cx='19' cy='13' r='3'/><circle cx='13' cy='18' r='3'/><circle cx='7' cy='13' r='3'/><circle cx='13' cy='13' r='2.5' fill='#fde047'/></g>",
+        (s) => "<g fill='#fde047' opacity='0.6'><circle cx='13' cy='13' r='6'/><path d='M8 12 L3 13 L8 15 Z' fill='#f97316'/></g>",
+        (s) => "<g fill='none' stroke='#92400e' stroke-width='1.3' opacity='0.5'><path d='M4 12 L22 12 L19 22 L7 22 Z'/><path d='M8 12 Q13 4 18 12'/></g>",
+        (s) => "<g fill='none' stroke='#f97316' stroke-width='1.3' opacity='0.5'><path d='M13 10 L9 24 L17 24 Z'/><path d='M13 10 L13 4 M10 8 L8 3 M16 8 L18 3'/></g>",
+        (s) => "<g fill='#fff' opacity='0.55'><path d='M13 13 C10 6 2 6 3 12 C4 17 10 15 13 13 Z'/><path d='M13 13 C16 6 24 6 23 12 C22 17 16 15 13 13 Z'/><path d='M13 13 L13 22'/></g>",
+        (s) => "<g fill='none' stroke='#fff' stroke-width='1.5' opacity='0.6'><ellipse cx='13' cy='14' rx='8' ry='10'/><path d='M9 8 L13 13 L10 16 L14 20'/></g>"
     ]
 };
 
