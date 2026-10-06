@@ -2653,9 +2653,27 @@ function bgDrawUnderwater(t) {
     }
 }
 
-// grad noću: silueta zgrada s prozorima koji trepere
+// grad noću: dva sloja zgrada (daleke maglovite + bliske s prozorima) - dojam dubine.
+// Prozori se nasumično pale/gase tijekom vremena (ne samo titraju jačinom).
 let bgCityBuildings = [];
+let bgCityFar = [];
 function bgMakeCity() {
+    // daleki, maglovit sloj - manje, gušće zgrade u pozadini
+    bgCityFar = [];
+    let fx = 0;
+    while (fx < bgW) {
+        const fw = 18 + Math.random() * 32;
+        const fh = 40 + Math.random() * (bgH * 0.32);
+        bgCityFar.push({
+            x: fx, w: fw, h: fh,
+            litX: 0.2 + Math.random() * 0.6,
+            litY: 0.2 + Math.random() * 0.6,
+            seed: Math.random() * 10
+        });
+        fx += fw + 1;
+    }
+
+    // bliski, glavni sloj - veće zgrade s prozorima
     bgCityBuildings = [];
     let x = 0;
     while (x < bgW) {
@@ -2666,7 +2684,14 @@ function bgMakeCity() {
         const windows = [];
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
-                if (Math.random() < 0.6) windows.push({ r: r, c: c, on: Math.random() < 0.7, phase: Math.random() * Math.PI * 2 });
+                if (Math.random() < 0.6) {
+                    windows.push({
+                        r: r, c: c,
+                        on: Math.random() < 0.7,
+                        phase: Math.random() * Math.PI * 2,
+                        nextToggle: 1 + Math.random() * 14
+                    });
+                }
             }
         }
         bgCityBuildings.push({ x: x, w: w, h: h, cols: cols, rows: rows, windows: windows });
@@ -2678,6 +2703,19 @@ function bgDrawCity(t) {
     bgCtx.fillStyle = "#05070d";
     bgCtx.fillRect(0, 0, bgW, bgH);
 
+    // daleki sloj: maglovita, plavičasta silueta + tek pokoje udaljeno svjetlo koje rijetko trepne
+    for (const b of bgCityFar) {
+        const top = bgH - b.h;
+        bgCtx.fillStyle = "rgba(30, 41, 59, 0.6)";
+        bgCtx.fillRect(b.x, top, b.w, b.h);
+
+        if (Math.floor(t * 0.5 + b.seed) % 6 === 0) {
+            bgCtx.fillStyle = "rgba(251, 191, 36, 0.4)";
+            bgCtx.fillRect(b.x + b.w * b.litX, top + b.h * b.litY, 2, 2);
+        }
+    }
+
+    // bliski sloj: glavne zgrade, prozori se nasumično pale/gase + blago titraju kad su upaljeni
     for (const b of bgCityBuildings) {
         const top = bgH - b.h;
         bgCtx.fillStyle = "#0f1420";
@@ -2685,10 +2723,13 @@ function bgDrawCity(t) {
 
         const cw = b.w / b.cols, ch = b.h / b.rows;
         for (const win of b.windows) {
+            if (t > win.nextToggle) {
+                win.on = !win.on;
+                win.nextToggle = t + 1 + Math.random() * 14;
+            }
             if (!win.on) continue;
-            const flicker = 0.5 + 0.5 * Math.sin(t * 0.6 + win.phase);
-            const alpha = 0.5 + 0.5 * flicker;
-            bgCtx.fillStyle = "rgba(251,191,36," + (alpha * 0.8) + ")";
+            const twinkle = 0.85 + 0.15 * Math.sin(t * 2 + win.phase);
+            bgCtx.fillStyle = "rgba(251,191,36," + (0.78 * twinkle) + ")";
             bgCtx.fillRect(b.x + win.c * cw + 2, top + win.r * ch + 2, cw - 4, ch - 4);
         }
     }
