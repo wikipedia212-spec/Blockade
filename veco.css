@@ -1143,6 +1143,34 @@ h3 {
     color: #111;
 }
 
+/* ===== Tabovi na ekranu Cosmetics ===== */
+.cosmo-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin: 0 0 16px;
+}
+
+.cosmo-tabs .cosmo-tab {
+    width: auto;
+    flex: 1 1 auto;
+    margin: 0;
+    padding: 8px 14px;
+    font-size: 14px;
+    background: #374151;
+    color: #fff;
+}
+
+.cosmo-tabs .cosmo-tab.active {
+    background: #22c55e;
+    color: #111;
+}
+
+.cosmo-section {
+    min-height: 120px;
+}
+
 /* ===== Time Race HUD (ispod donjeg reda kvadrata) ===== */
 .board-wrap {
     position: relative;

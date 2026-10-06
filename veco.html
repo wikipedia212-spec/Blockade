@@ -84,63 +84,6 @@
             <button class="diff-btn" data-diff="normal">Normal</button>
             <button class="diff-btn" data-diff="hard">Hard</button>
         </div>
-        <p>Background:</p>
-        <div class="bg-row">
-            <button class="bg-btn" data-bg="dots">Dots</button>
-            <button class="bg-btn" data-bg="water">Water</button>
-            <button class="bg-btn" data-bg="constellation">Network</button>
-            <button class="bg-btn" data-bg="warp">Warp</button>
-            <button class="bg-btn" data-bg="fireflies">Fireflies</button>
-            <button class="bg-btn" data-bg="ripples">Ripples</button>
-            <button class="bg-btn" data-bg="topo">Topo</button>
-            <button class="bg-btn" data-bg="matrix">Matrix</button>
-            <button class="bg-btn" data-bg="none">Plain</button>
-            <button class="bg-btn premium" data-bg="aurora">🔒 Aurora</button>
-            <button class="bg-btn premium" data-bg="nebula">🔒 Nebula</button>
-            <button class="bg-btn premium" data-bg="underwater">🔒 Underwater</button>
-            <button class="bg-btn premium" data-bg="city">🔒 City Lights</button>
-        </div>
-        <p>Fields (pattern):</p>
-        <div class="theme-row">
-            <button class="theme-btn" data-theme="patterns">Patterns</button>
-            <button class="theme-btn" data-theme="plain">Plain</button>
-        </div>
-        <p>Pattern theme:</p>
-        <div class="cosmetic-row">
-            <button class="cosmetic-btn" data-pattern="classic">Classic</button>
-            <button class="cosmetic-btn premium" data-pattern="neon">🔒 Neon</button>
-            <button class="cosmetic-btn premium" data-pattern="galaxy">🔒 Galaxy</button>
-            <button class="cosmetic-btn premium" data-pattern="wood">🔒 Wood</button>
-            <button class="cosmetic-btn premium" data-pattern="pixel">🔒 Pixel</button>
-            <button class="cosmetic-btn premium" data-pattern="christmas">🔒 Christmas</button>
-            <button class="cosmetic-btn premium" data-pattern="halloween">🔒 Halloween</button>
-            <button class="cosmetic-btn premium" data-pattern="valentine">🔒 Valentine</button>
-            <button class="cosmetic-btn premium" data-pattern="easter">🔒 Easter</button>
-        </div>
-        <p>Joker skin:</p>
-        <div class="cosmetic-row">
-            <button class="cosmetic-btn" data-joker="crown">Crown</button>
-            <button class="cosmetic-btn premium" data-joker="star">🔒 Star</button>
-            <button class="cosmetic-btn premium" data-joker="diamond">🔒 Diamond</button>
-            <button class="cosmetic-btn premium" data-joker="bolt">🔒 Bolt</button>
-            <button class="cosmetic-btn premium" data-joker="christmas">🔒 Christmas</button>
-            <button class="cosmetic-btn premium" data-joker="halloween">🔒 Halloween</button>
-            <button class="cosmetic-btn premium" data-joker="valentine">🔒 Valentine</button>
-            <button class="cosmetic-btn premium" data-joker="easter">🔒 Easter</button>
-        </div>
-        <p>Square frame:</p>
-        <div class="cosmetic-row">
-            <button class="cosmetic-btn" data-frame="default">Default</button>
-            <button class="cosmetic-btn premium" data-frame="gold">🔒 Gold</button>
-            <button class="cosmetic-btn premium" data-frame="neon">🔒 Neon</button>
-            <button class="cosmetic-btn premium" data-frame="wood">🔒 Wood</button>
-            <button class="cosmetic-btn premium" data-frame="rainbow">🔒 Rainbow</button>
-            <button class="cosmetic-btn premium" data-frame="christmas">🔒 Christmas</button>
-            <button class="cosmetic-btn premium" data-frame="halloween">🔒 Halloween</button>
-            <button class="cosmetic-btn premium" data-frame="valentine">🔒 Valentine</button>
-            <button class="cosmetic-btn premium" data-frame="easter">🔒 Easter</button>
-        </div>
-        <button id="btnUnlockPremium" class="btn-premium">🔓 Unlock Premium (demo)</button>
         <p>Numbers on colors:</p>
         <div class="num-row">
             <button class="num-btn" data-num="on">On</button>
@@ -151,8 +94,93 @@
             <button class="music-btn" data-music="on">On</button>
             <button class="music-btn" data-music="off">Off</button>
         </div>
+        <button id="btnCosmetics">🎨 Cosmetics</button>
         <button id="btnResetHs" class="btn-secondary">Reset high score</button>
         <button id="btnSettingsBack">Back</button>
+    </div>
+</div>
+
+<!-- Cosmetics (pozadina / uzorci / džoker skin / okvir) - zaseban ekran, otvara se iz Settings -->
+<div class="overlay" id="screen-cosmetics">
+    <div class="overlay-box">
+        <h2>Cosmetics</h2>
+        <div class="cosmo-tabs">
+            <button class="cosmo-tab active" data-cosmotab="bg">Background</button>
+            <button class="cosmo-tab" data-cosmotab="pattern">Pattern</button>
+            <button class="cosmo-tab" data-cosmotab="joker">Joker</button>
+            <button class="cosmo-tab" data-cosmotab="frame">Frame</button>
+        </div>
+
+        <div class="cosmo-section" data-cosmosection="bg">
+            <p>Fields (pattern on/off):</p>
+            <div class="theme-row">
+                <button class="theme-btn" data-theme="patterns">Patterns</button>
+                <button class="theme-btn" data-theme="plain">Plain</button>
+            </div>
+            <p>Background:</p>
+            <div class="bg-row">
+                <button class="bg-btn" data-bg="dots">Dots</button>
+                <button class="bg-btn" data-bg="water">Water</button>
+                <button class="bg-btn" data-bg="constellation">Network</button>
+                <button class="bg-btn" data-bg="warp">Warp</button>
+                <button class="bg-btn" data-bg="fireflies">Fireflies</button>
+                <button class="bg-btn" data-bg="ripples">Ripples</button>
+                <button class="bg-btn" data-bg="topo">Topo</button>
+                <button class="bg-btn" data-bg="matrix">Matrix</button>
+                <button class="bg-btn" data-bg="none">Plain</button>
+                <button class="bg-btn premium" data-bg="aurora">🔒 Aurora</button>
+                <button class="bg-btn premium" data-bg="nebula">🔒 Nebula</button>
+                <button class="bg-btn premium" data-bg="underwater">🔒 Underwater</button>
+                <button class="bg-btn premium" data-bg="city">🔒 City Lights</button>
+            </div>
+        </div>
+
+        <div class="cosmo-section" data-cosmosection="pattern" hidden>
+            <p>Pattern theme:</p>
+            <div class="cosmetic-row">
+                <button class="cosmetic-btn" data-pattern="classic">Classic</button>
+                <button class="cosmetic-btn premium" data-pattern="neon">🔒 Neon</button>
+                <button class="cosmetic-btn premium" data-pattern="galaxy">🔒 Galaxy</button>
+                <button class="cosmetic-btn premium" data-pattern="wood">🔒 Wood</button>
+                <button class="cosmetic-btn premium" data-pattern="pixel">🔒 Pixel</button>
+                <button class="cosmetic-btn premium" data-pattern="christmas">🔒 Christmas</button>
+                <button class="cosmetic-btn premium" data-pattern="halloween">🔒 Halloween</button>
+                <button class="cosmetic-btn premium" data-pattern="valentine">🔒 Valentine</button>
+                <button class="cosmetic-btn premium" data-pattern="easter">🔒 Easter</button>
+            </div>
+        </div>
+
+        <div class="cosmo-section" data-cosmosection="joker" hidden>
+            <p>Joker skin:</p>
+            <div class="cosmetic-row">
+                <button class="cosmetic-btn" data-joker="crown">Crown</button>
+                <button class="cosmetic-btn premium" data-joker="star">🔒 Star</button>
+                <button class="cosmetic-btn premium" data-joker="diamond">🔒 Diamond</button>
+                <button class="cosmetic-btn premium" data-joker="bolt">🔒 Bolt</button>
+                <button class="cosmetic-btn premium" data-joker="christmas">🔒 Christmas</button>
+                <button class="cosmetic-btn premium" data-joker="halloween">🔒 Halloween</button>
+                <button class="cosmetic-btn premium" data-joker="valentine">🔒 Valentine</button>
+                <button class="cosmetic-btn premium" data-joker="easter">🔒 Easter</button>
+            </div>
+        </div>
+
+        <div class="cosmo-section" data-cosmosection="frame" hidden>
+            <p>Square frame:</p>
+            <div class="cosmetic-row">
+                <button class="cosmetic-btn" data-frame="default">Default</button>
+                <button class="cosmetic-btn premium" data-frame="gold">🔒 Gold</button>
+                <button class="cosmetic-btn premium" data-frame="neon">🔒 Neon</button>
+                <button class="cosmetic-btn premium" data-frame="wood">🔒 Wood</button>
+                <button class="cosmetic-btn premium" data-frame="rainbow">🔒 Rainbow</button>
+                <button class="cosmetic-btn premium" data-frame="christmas">🔒 Christmas</button>
+                <button class="cosmetic-btn premium" data-frame="halloween">🔒 Halloween</button>
+                <button class="cosmetic-btn premium" data-frame="valentine">🔒 Valentine</button>
+                <button class="cosmetic-btn premium" data-frame="easter">🔒 Easter</button>
+            </div>
+        </div>
+
+        <button id="btnUnlockPremium" class="btn-premium">🔓 Unlock Premium (demo)</button>
+        <button id="btnCosmeticsBack">Back</button>
     </div>
 </div>
 

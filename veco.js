@@ -202,11 +202,12 @@ const fullscreenBtn = document.getElementById("fullscreenBtn");
 const rotateFsBtn = document.getElementById("rotateFsBtn");
 const screenMain = document.getElementById("screen-main");
 const screenSettings = document.getElementById("screen-settings");
+const screenCosmetics = document.getElementById("screen-cosmetics");
 const screenHighscore = document.getElementById("screen-highscore");
 const screenPause = document.getElementById("screen-pause");
 const screenLegend = document.getElementById("screen-legend");
 const hsListDiv = document.getElementById("hsList");
-const allScreens = [screenMain, screenSettings, screenHighscore, screenPause, screenLegend, overlay];
+const allScreens = [screenMain, screenSettings, screenCosmetics, screenHighscore, screenPause, screenLegend, overlay];
 
 // ===== NIVOI =====
 // Nivo 1 traži 10 popunjenih kvadratića, svaki sljedeći +1.
@@ -1339,6 +1340,18 @@ function setHsTab(tab) {
     updateHighscoreScreen();
 }
 
+// ===== COSMETICS (tabovi: background / pattern / joker / frame) =====
+const COSMO_TABS = ["bg", "pattern", "joker", "frame"];
+function setCosmoTab(tab) {
+    if (COSMO_TABS.indexOf(tab) === -1) tab = "bg";
+    document.querySelectorAll(".cosmo-tab").forEach(b => {
+        b.classList.toggle("active", b.dataset.cosmotab === tab);
+    });
+    document.querySelectorAll(".cosmo-section").forEach(sec => {
+        sec.hidden = sec.dataset.cosmosection !== tab;
+    });
+}
+
 // ===== TEŽINA (postavke) =====
 function setDifficulty(d, save) {
     if (!DIFFICULTIES[d]) return;
@@ -1830,6 +1843,12 @@ document.getElementById("btnHighscore").onclick = () => { updateHighscoreScreen(
 document.querySelectorAll(".hs-tab").forEach(btn => {
     btn.onclick = () => setHsTab(btn.dataset.hstab);
 });
+
+document.getElementById("btnCosmetics").onclick = () => { setCosmoTab("bg"); openScreen(screenCosmetics); };
+document.querySelectorAll(".cosmo-tab").forEach(btn => {
+    btn.onclick = () => setCosmoTab(btn.dataset.cosmotab);
+});
+document.getElementById("btnCosmeticsBack").onclick = () => openScreen(screenSettings);
 
 document.getElementById("btnSettingsBack").onclick = () => openScreen(settingsReturn);
 document.getElementById("btnHsBack").onclick = () => openScreen(screenMain);
