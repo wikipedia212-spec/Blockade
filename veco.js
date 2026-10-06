@@ -2653,26 +2653,45 @@ function bgDrawUnderwater(t) {
     }
 }
 
-// grad noću: mjesec + oblaci + dva sloja zgrada (daleke maglovite + bliske s prozorima) + bandere.
+// jednostavan, deterministički "value noise" (bez vanjskih biblioteka) - za organske oblike (oblaci, magla)
+function bgHash(n) {
+    const s = Math.sin(n * 127.1) * 43758.5453;
+    return s - Math.floor(s);
+}
+function bgValueNoise(x) {
+    const i = Math.floor(x);
+    const f = x - i;
+    const a = bgHash(i);
+    const b = bgHash(i + 1);
+    const u = f * f * (3 - 2 * f);   // smoothstep
+    return a + (b - a) * u;
+}
+
+// grad noću: mjesec + "noise" oblaci + dva sloja zgrada (daleke maglovite + bliske, raznih krovova,
+// povremeno trepćuće avio-svjetlo) + automobilska svjetla u pokretu na ulici + bandere + refleksija na mokroj ulici.
 // Prozori se polako, nasumično pale/gase tijekom vremena (ne samo titraju jačinom).
 let bgCityBuildings = [];
 let bgCityFar = [];
 let bgCityClouds = [];
 let bgStreetLamps = [];
+let bgCarsR = [];   // automobili koji idu ulijevo->udesno (bijela svjetla)
+let bgCarsL = [];   // automobili koji idu udesno->ulijevo (crvena svjetla)
 let bgMoon = { x: 0, y: 0 };
+const BG_GROUND_Y_OFFSET = 14;   // visina "ulice" od dna ekrana
 
 function bgMakeCity() {
     bgMoon = { x: bgW * 0.82, y: bgH * 0.16 };
 
-    // oblaci koji sporo plove preko neba
+    // oblaci koji sporo plove preko neba (organski, "noise" rub umjesto glatkih elipsa)
     bgCityClouds = [];
-    const cloudCount = 4;
+    const cloudCount = 5;
     for (let i = 0; i < cloudCount; i++) {
         bgCityClouds.push({
             x: Math.random() * bgW,
-            y: bgH * (0.08 + Math.random() * 0.22),
-            scale: 0.7 + Math.random() * 1.1,
-            vx: 0.04 + Math.random() * 0.08
+            y: bgH * (0.06 + Math.random() * 0.24),
+            scale: 0.8 + Math.random() * 1.3,
+            vx: 0.04 + Math.random() * 0.08,
+            seed: Math.random() * 100
         });
     }
 
@@ -2691,7 +2710,7 @@ function bgMakeCity() {
         fx += fw + 1;
     }
 
-    // bliski, glavni sloj - veće zgrade s prozorima
+    // bliski, glavni sloj - veće zgrade s prozorima, različitim krovovima i povremenim avio-svjetlom
     bgCityBuildings = [];
     let x = 0;
     while (x < bgW) {
@@ -2712,7 +2731,12 @@ function bgMakeCity() {
                 }
             }
         }
-        bgCityBuildings.push({ x: x, w: w, h: h, cols: cols, rows: rows, windows: windows });
+        bgCityBuildings.push({
+            x: x, w: w, h: h, cols: cols, rows: rows, windows: windows,
+            roof: Math.floor(Math.random() * 3),           // 0 ravan, 1 antena, 2 vodotoranj
+            beacon: Math.random() < 0.22,                  // trepćuće crveno avio-svjetlo na krovu
+            beaconPhase: Math.random() * Math.PI * 2
+        });
         x += w + 2;
     }
 
@@ -2722,17 +2746,33 @@ function bgMakeCity() {
     for (let lx = lampSpacing / 2; lx < bgW; lx += lampSpacing) {
         bgStreetLamps.push({ x: lx, phase: Math.random() * Math.PI * 2 });
     }
+
+    // automobili koji povremeno prođu ulicom (svjetlosni trag)
+    bgCarsR = [];
+    bgCarsL = [];
+    for (let i = 0; i < 2; i++) bgCarsR.push({ x: -200 - Math.random() * 400, speed: 2.5 + Math.random() * 2 });
+    for (let i = 0; i < 2; i++) bgCarsL.push({ x: bgW + 200 + Math.random() * 400, speed: 2.5 + Math.random() * 2 });
 }
 
-function bgDrawCloudShape(x, y, scale) {
+// oblak s "noise" rubom - organskiji od glatke elipse
+function bgDrawCloudShape(x, y, scale, seed) {
+    const w = 100 * scale, h = 30 * scale;
+    const steps = 24;
     bgCtx.beginPath();
-    bgCtx.ellipse(x, y, 40 * scale, 14 * scale, 0, 0, Math.PI * 2);
-    bgCtx.ellipse(x - 26 * scale, y + 4 * scale, 24 * scale, 11 * scale, 0, 0, Math.PI * 2);
-    bgCtx.ellipse(x + 28 * scale, y + 3 * scale, 26 * scale, 12 * scale, 0, 0, Math.PI * 2);
+    bgCtx.moveTo(x - w / 2, y + h / 2);
+    for (let i = 0; i <= steps; i++) {
+        const px = x - w / 2 + (w * i) / steps;
+        const n = bgValueNoise(i * 0.7 + seed) * 0.65 + bgValueNoise(i * 0.25 + seed + 50) * 0.35;
+        const edge = Math.sin((i / steps) * Math.PI);   // tanji na rubovima, deblji u sredini
+        const py = y - h * n * edge;
+        bgCtx.lineTo(px, py);
+    }
+    bgCtx.lineTo(x + w / 2, y + h / 2);
+    bgCtx.closePath();
     bgCtx.fill();
 }
 
-function bgDrawCity(t) {
+function bgDrawCityScene(t) {
     bgCtx.fillStyle = "#05070d";
     bgCtx.fillRect(0, 0, bgW, bgH);
 
@@ -2762,7 +2802,7 @@ function bgDrawCity(t) {
     for (const c of bgCityClouds) {
         c.x += c.vx;
         if (c.x > bgW + 90) c.x = -90;
-        bgDrawCloudShape(c.x, c.y, c.scale);
+        bgDrawCloudShape(c.x, c.y, c.scale, c.seed);
     }
 
     // daleki sloj: maglovita, plavičasta silueta + tek pokoje udaljeno svjetlo koje rijetko trepne
@@ -2783,6 +2823,30 @@ function bgDrawCity(t) {
         bgCtx.fillStyle = "#0f1420";
         bgCtx.fillRect(b.x, top, b.w, b.h);
 
+        // krov: antena ili vodotoranj (dodatna arhitektonska raznolikost)
+        if (b.roof === 1) {
+            bgCtx.strokeStyle = "#0f1420";
+            bgCtx.lineWidth = 2;
+            bgCtx.beginPath();
+            bgCtx.moveTo(b.x + b.w / 2, top);
+            bgCtx.lineTo(b.x + b.w / 2, top - 16);
+            bgCtx.stroke();
+        } else if (b.roof === 2) {
+            bgCtx.fillStyle = "#0f1420";
+            bgCtx.fillRect(b.x + b.w * 0.3, top - 10, b.w * 0.4, 10);
+        }
+
+        // trepćuće crveno avio-svjetlo na krovu
+        if (b.beacon) {
+            const blink = Math.sin(t * 2.2 + b.beaconPhase);
+            if (blink > 0.6) {
+                bgCtx.fillStyle = "rgba(239,68,68,0.9)";
+                bgCtx.beginPath();
+                bgCtx.arc(b.x + b.w / 2, top - (b.roof === 1 ? 16 : 0) - 2, 2.5, 0, Math.PI * 2);
+                bgCtx.fill();
+            }
+        }
+
         const cw = b.w / b.cols, ch = b.h / b.rows;
         for (const win of b.windows) {
             if (t > win.nextToggle) {
@@ -2794,6 +2858,35 @@ function bgDrawCity(t) {
             bgCtx.fillStyle = "rgba(251,191,36," + (0.78 * twinkle) + ")";
             bgCtx.fillRect(b.x + win.c * cw + 2, top + win.r * ch + 2, cw - 4, ch - 4);
         }
+    }
+
+    // automobili koji prolaze ulicom - svjetlosni trag (bijeli udesno, crveni ulijevo)
+    const roadY = bgH - BG_GROUND_Y_OFFSET;
+    for (const car of bgCarsR) {
+        car.x += car.speed;
+        if (car.x > bgW + 60) car.x = -60 - Math.random() * 300;
+        const trail = bgCtx.createLinearGradient(car.x - 26, roadY, car.x, roadY);
+        trail.addColorStop(0, "rgba(255,255,255,0)");
+        trail.addColorStop(1, "rgba(255,255,255,0.85)");
+        bgCtx.strokeStyle = trail;
+        bgCtx.lineWidth = 2;
+        bgCtx.beginPath();
+        bgCtx.moveTo(car.x - 26, roadY);
+        bgCtx.lineTo(car.x, roadY);
+        bgCtx.stroke();
+    }
+    for (const car of bgCarsL) {
+        car.x -= car.speed;
+        if (car.x < -60) car.x = bgW + 60 + Math.random() * 300;
+        const trail = bgCtx.createLinearGradient(car.x + 26, roadY + 4, car.x, roadY + 4);
+        trail.addColorStop(0, "rgba(239,68,68,0)");
+        trail.addColorStop(1, "rgba(239,68,68,0.85)");
+        bgCtx.strokeStyle = trail;
+        bgCtx.lineWidth = 2;
+        bgCtx.beginPath();
+        bgCtx.moveTo(car.x + 26, roadY + 4);
+        bgCtx.lineTo(car.x, roadY + 4);
+        bgCtx.stroke();
     }
 
     // bandere - stup + ruka + žarulja sa sjajem, u prvom planu
@@ -2823,6 +2916,24 @@ function bgDrawCity(t) {
         bgCtx.arc(lightX, lightY, 3.5, 0, Math.PI * 2);
         bgCtx.fill();
     }
+}
+
+function bgDrawCity(t) {
+    bgDrawCityScene(t);
+
+    // refleksija na "mokroj" ulici: zrcali uski pojas iznad crte ulice, prigušeno
+    const groundY = bgH - BG_GROUND_Y_OFFSET;
+    const reflH = Math.min(90, groundY);
+    bgCtx.save();
+    bgCtx.beginPath();
+    bgCtx.rect(0, groundY, bgW, reflH);
+    bgCtx.clip();
+    bgCtx.globalAlpha = 0.16;
+    bgCtx.translate(0, groundY);
+    bgCtx.scale(1, -1);
+    bgCtx.translate(0, -groundY);
+    bgCtx.drawImage(bgCanvas, 0, groundY - reflH, bgW, reflH, 0, groundY - reflH, bgW, reflH);
+    bgCtx.restore();
 }
 
 function bgLoop() {
