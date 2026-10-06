@@ -3004,18 +3004,29 @@ function bgMakeCity() {
 
 // oblak s "noise" rubom - organskiji od glatke elipse
 function bgDrawCloudShape(x, y, scale, seed) {
-    const w = 100 * scale, h = 30 * scale;
+    const w = 100 * scale;
+    const topH = 30 * scale;
+    const botH = 14 * scale;   // donji rub je plići od gornjeg, ali nikad ravan
     const steps = 24;
+
     bgCtx.beginPath();
-    bgCtx.moveTo(x - w / 2, y + h / 2);
+    // gornji, "napuhan" rub (lijevo -> desno)
     for (let i = 0; i <= steps; i++) {
         const px = x - w / 2 + (w * i) / steps;
         const n = bgValueNoise(i * 0.7 + seed) * 0.65 + bgValueNoise(i * 0.25 + seed + 50) * 0.35;
         const edge = Math.sin((i / steps) * Math.PI);   // tanji na rubovima, deblji u sredini
-        const py = y - h * n * edge;
+        const py = y - topH * n * edge;
+        if (i === 0) bgCtx.moveTo(px, py);
+        else bgCtx.lineTo(px, py);
+    }
+    // donji, blaže zaobljeni rub (desno -> lijevo, zatvara oblik) - nikad potpuno ravan
+    for (let i = steps; i >= 0; i--) {
+        const px = x - w / 2 + (w * i) / steps;
+        const n = bgValueNoise(i * 0.9 + seed + 200) * 0.6 + bgValueNoise(i * 0.3 + seed + 300) * 0.4;
+        const edge = Math.sin((i / steps) * Math.PI);
+        const py = y + botH * (0.35 + n * 0.65) * edge;
         bgCtx.lineTo(px, py);
     }
-    bgCtx.lineTo(x + w / 2, y + h / 2);
     bgCtx.closePath();
     bgCtx.fill();
 }
