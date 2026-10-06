@@ -2610,29 +2610,165 @@ function bgDrawNebula(t) {
     }
 }
 
-// podvodni svijet: mjehurići koji lebde prema vrhu + svjetlosne zrake
+// podvodni svijet: realniji mjehurići + ribe koje plivaju + svjetlosne zrake +
+// vrlo rijetka velika sjena morskog psa koja prođe u dubini.
 let bgBubbles = [];
+let bgPops = [];     // kratke čestice "pucanja" mjehura na vrhu
+let bgFish = [];
+let bgShark = null;
+let bgNextSharkTime = 0;
+
 function bgMakeUnderwater() {
     const count = Math.max(25, Math.round((bgW * bgH) / 25000));
     bgBubbles = [];
     for (let i = 0; i < count; i++) {
+        const r = 1.5 + Math.random() * 6;
         bgBubbles.push({
             x: Math.random() * bgW,
             y: Math.random() * bgH + bgH,
-            r: 2 + Math.random() * 6,
-            speed: 0.4 + Math.random() * 1.2,
-            wob: Math.random() * Math.PI * 2
+            r: r,
+            speed: 0.3 + r * 0.22 + Math.random() * 0.4,   // veći mjehur = brže se penje
+            seed: Math.random() * 100
         });
     }
+    bgPops = [];
+
+    // riblje jato - razne dubine (manje/prozirnije = dalje, veće/jasnije = bliže)
+    bgFish = [];
+    const fishCount = 7 + Math.floor(Math.random() * 6);
+    for (let i = 0; i < fishCount; i++) {
+        const depth = Math.random();
+        bgFish.push({
+            x: Math.random() * bgW,
+            y: bgH * 0.2 + Math.random() * bgH * 0.55,
+            dir: Math.random() < 0.5 ? 1 : -1,
+            speed: (0.35 + Math.random() * 0.55) * (0.5 + depth),
+            scale: 0.6 + depth * 1.2,
+            alpha: 0.22 + depth * 0.5,
+            wigglePhase: Math.random() * Math.PI * 2,
+            bobPhase: Math.random() * Math.PI * 2
+        });
+    }
+
+    // morski pas - jako rijetko prođe kao velika sjena u dubini
+    bgShark = null;
+    bgNextSharkTime = 30 + Math.random() * 60;
+}
+
+// mjehur s gradijentom i svjetlosnim odbljeskom - realnije od pukog kruga
+function bgDrawBubble(x, y, r) {
+    const grad = bgCtx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
+    grad.addColorStop(0, "rgba(255,255,255,0.35)");
+    grad.addColorStop(0.7, "rgba(255,255,255,0.08)");
+    grad.addColorStop(1, "rgba(255,255,255,0.03)");
+    bgCtx.fillStyle = grad;
+    bgCtx.beginPath();
+    bgCtx.arc(x, y, r, 0, Math.PI * 2);
+    bgCtx.fill();
+
+    bgCtx.strokeStyle = "rgba(255,255,255,0.45)";
+    bgCtx.lineWidth = 0.8;
+    bgCtx.stroke();
+
+    // mali svjetlosni odbljesak
+    bgCtx.fillStyle = "rgba(255,255,255,0.7)";
+    bgCtx.beginPath();
+    bgCtx.arc(x - r * 0.35, y - r * 0.35, Math.max(0.6, r * 0.22), 0, Math.PI * 2);
+    bgCtx.fill();
+}
+
+// jednostavna riblja silueta (tijelo + rep), okrenuta prema smjeru plivanja
+function bgDrawFish(x, y, scale, dir, alpha, wiggle) {
+    bgCtx.save();
+    bgCtx.translate(x, y);
+    bgCtx.scale(dir * scale, scale);
+    bgCtx.rotate(wiggle * 0.12);
+    bgCtx.fillStyle = "rgba(10,30,35," + alpha + ")";
+    bgCtx.beginPath();
+    bgCtx.moveTo(10, 0);
+    bgCtx.quadraticCurveTo(2, -7, -9, -2);
+    bgCtx.quadraticCurveTo(-13, 0, -9, 2);
+    bgCtx.quadraticCurveTo(2, 7, 10, 0);
+    bgCtx.closePath();
+    bgCtx.fill();
+    // rep
+    bgCtx.beginPath();
+    bgCtx.moveTo(-9, 0);
+    bgCtx.lineTo(-16, -6);
+    bgCtx.lineTo(-16, 6);
+    bgCtx.closePath();
+    bgCtx.fill();
+    bgCtx.restore();
+}
+
+// velika, mekana sjena morskog psa koja prođe u dubini (rijedak "jump scare" detalj pozadine)
+function bgDrawShark(s, t) {
+    const wiggle = Math.sin(t * 1.4 + s.wigglePhase) * 0.07;
+    bgCtx.save();
+    bgCtx.translate(s.x, s.y);
+    bgCtx.scale(s.dir, 1);
+    bgCtx.rotate(wiggle);
+    bgCtx.fillStyle = "rgba(0,8,12,0.4)";
+    bgCtx.beginPath();
+    bgCtx.moveTo(-95, 0);
+    bgCtx.quadraticCurveTo(-45, -24, 45, -5);
+    bgCtx.quadraticCurveTo(75, 0, 95, 5);
+    bgCtx.quadraticCurveTo(45, 15, -45, 17);
+    bgCtx.quadraticCurveTo(-75, 10, -95, 0);
+    bgCtx.closePath();
+    bgCtx.fill();
+    // leđna peraja
+    bgCtx.beginPath();
+    bgCtx.moveTo(-5, -5);
+    bgCtx.lineTo(6, -30);
+    bgCtx.lineTo(20, -3);
+    bgCtx.closePath();
+    bgCtx.fill();
+    // rep
+    bgCtx.beginPath();
+    bgCtx.moveTo(-95, 0);
+    bgCtx.lineTo(-122, -22);
+    bgCtx.lineTo(-114, 2);
+    bgCtx.lineTo(-122, 20);
+    bgCtx.closePath();
+    bgCtx.fill();
+    bgCtx.restore();
 }
 
 function bgDrawUnderwater(t) {
-    bgCtx.fillStyle = "#001824";
+    // vertikalni gradijent - svjetlije (sunce kroz vodu) pri vrhu, tamnije u dubini
+    const waterGrad = bgCtx.createLinearGradient(0, 0, 0, bgH);
+    waterGrad.addColorStop(0, "#003b4d");
+    waterGrad.addColorStop(0.5, "#00232f");
+    waterGrad.addColorStop(1, "#000f17");
+    bgCtx.fillStyle = waterGrad;
     bgCtx.fillRect(0, 0, bgW, bgH);
 
-    bgCtx.fillStyle = "rgba(255,255,255,0.04)";
+    // morski pas - jako rijetko prođe kao sjena u dubini, ispod svega ostalog
+    if (!bgShark && t > bgNextSharkTime) {
+        const dir = Math.random() < 0.5 ? 1 : -1;
+        bgShark = {
+            x: dir > 0 ? -220 : bgW + 220,
+            y: bgH * (0.22 + Math.random() * 0.4),
+            dir: dir,
+            speed: 0.7 + Math.random() * 0.35,
+            wigglePhase: Math.random() * Math.PI * 2
+        };
+    }
+    if (bgShark) {
+        bgShark.x += bgShark.dir * bgShark.speed;
+        bgDrawShark(bgShark, t);
+        if ((bgShark.dir > 0 && bgShark.x > bgW + 220) || (bgShark.dir < 0 && bgShark.x < -220)) {
+            bgShark = null;
+            bgNextSharkTime = t + 90 + Math.random() * 150;   // vrlo rijetko - 1.5 do 4 minute do sljedećeg
+        }
+    }
+
+    // svjetlosne zrake kroz vodu, blago trepere
     for (let i = 0; i < 5; i++) {
         const x = (i / 5) * bgW + Math.sin(t * 0.1 + i) * 40;
+        const shimmer = 0.03 + 0.02 * Math.sin(t * 0.7 + i * 1.3);
+        bgCtx.fillStyle = "rgba(180,230,255," + shimmer + ")";
         bgCtx.beginPath();
         bgCtx.moveTo(x - 30, 0);
         bgCtx.lineTo(x + 30, 0);
@@ -2642,14 +2778,44 @@ function bgDrawUnderwater(t) {
         bgCtx.fill();
     }
 
-    bgCtx.strokeStyle = "rgba(255,255,255,0.4)";
+    // riblje jato - plivaju, blago se njišu (tijelo) i lebde gore-dolje
+    for (const f of bgFish) {
+        f.x += f.dir * f.speed;
+        if (f.dir > 0 && f.x > bgW + 30) f.x = -30;
+        if (f.dir < 0 && f.x < -30) f.x = bgW + 30;
+        const bobY = f.y + Math.sin(t * 0.8 + f.bobPhase) * 6;
+        const wiggle = Math.sin(t * 6 + f.wigglePhase);
+        bgDrawFish(f.x, bobY, f.scale, f.dir, f.alpha, wiggle);
+    }
+
+    // mjehurići - penju se, blago organski "njišu" lijevo-desno (noise), s odbljeskom; "puknu" na vrhu
     for (const b of bgBubbles) {
         b.y -= b.speed;
-        b.x += Math.sin(t + b.wob) * 0.3;
-        if (b.y < -10) { b.y = bgH + 10; b.x = Math.random() * bgW; }
-        bgCtx.beginPath();
-        bgCtx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-        bgCtx.stroke();
+        b.x += (bgValueNoise(b.seed + t * 0.5) - 0.5) * 0.8;
+        if (b.y < -10) {
+            bgPops.push({ x: b.x, y: 4, life: 1 });
+            b.y = bgH + 10;
+            b.x = Math.random() * bgW;
+            b.seed = Math.random() * 100;
+        }
+        bgDrawBubble(b.x, b.y, b.r);
+    }
+
+    // kratke čestice kad mjehur "pukne" na površini
+    for (let i = bgPops.length - 1; i >= 0; i--) {
+        const p = bgPops[i];
+        p.life -= 0.05;
+        if (p.life <= 0) { bgPops.splice(i, 1); continue; }
+        bgCtx.strokeStyle = "rgba(255,255,255," + (p.life * 0.6) + ")";
+        bgCtx.lineWidth = 1;
+        for (let a = 0; a < 4; a++) {
+            const ang = a * (Math.PI / 2) + p.life;
+            const d = (1 - p.life) * 8;
+            bgCtx.beginPath();
+            bgCtx.moveTo(p.x + Math.cos(ang) * d, p.y + Math.sin(ang) * d);
+            bgCtx.lineTo(p.x + Math.cos(ang) * (d + 3), p.y + Math.sin(ang) * (d + 3));
+            bgCtx.stroke();
+        }
     }
 }
 
