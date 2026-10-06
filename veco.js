@@ -2209,6 +2209,7 @@ function bgInit(mode) {
     else if (mode === "ripples") bgMakeRipples();
     else if (mode === "topo") bgMakeTopo();
     else if (mode === "matrix") bgMakeMatrix();
+    else if (mode === "aurora") bgMakeAurora();
     else if (mode === "nebula") bgMakeNebula();
     else if (mode === "underwater") bgMakeUnderwater();
     else if (mode === "city") bgMakeCity();
@@ -2520,53 +2521,126 @@ function bgDrawMatrix() {
 
 // ===== EKSKLUZIVNE (plaćene) POZADINE =====
 
-// aurora: valovite svjetlosne vrpce koje se preljevaju preko gornjeg dijela ekrana
-function bgDrawAurora(t) {
-    bgCtx.fillStyle = "#000";
-    bgCtx.fillRect(0, 0, bgW, bgH);
+// aurora: zvjezdano nebo + planinska silueta + valovite svjetlosne vrpce s
+// "noise" vertikalnim prugama (autentičan izgled zavjese svjetla) i sporim pomakom nijanse.
+let bgAuroraStars = [];
+let bgAuroraMountains = [];
 
-    const colors = ["34,197,94", "59,130,246", "168,85,247", "34,211,238"];
-    for (let i = 0; i < 4; i++) {
-        const baseY = bgH * (0.18 + i * 0.09);
-        const amp = 50 + i * 22;
-        const freq = 0.0014 + i * 0.0004;
-        const phase = t * (0.15 + i * 0.05) + i * 2;
-        const color = colors[i % colors.length];
+function bgMakeAurora() {
+    const starCount = Math.max(50, Math.round((bgW * bgH) / 11000));
+    bgAuroraStars = [];
+    for (let i = 0; i < starCount; i++) {
+        bgAuroraStars.push({
+            x: Math.random() * bgW,
+            y: Math.random() * bgH * 0.75,
+            r: Math.random() * 1.3 + 0.3,
+            phase: Math.random() * Math.PI * 2,
+            freq: 0.4 + Math.random() * 1.2
+        });
+    }
 
-        const grad = bgCtx.createLinearGradient(0, baseY - amp, 0, baseY + amp);
-        grad.addColorStop(0, "rgba(" + color + ",0)");
-        grad.addColorStop(0.5, "rgba(" + color + ",0.22)");
-        grad.addColorStop(1, "rgba(" + color + ",0)");
-
-        bgCtx.fillStyle = grad;
-        bgCtx.beginPath();
-        bgCtx.moveTo(0, baseY - amp);
-        for (let x = 0; x <= bgW; x += 24) {
-            const y = baseY + amp * Math.sin(x * freq + phase) * Math.sin(x * 0.0007 + t * 0.12);
-            bgCtx.lineTo(x, y);
-        }
-        bgCtx.lineTo(bgW, baseY + amp);
-        bgCtx.lineTo(bgW, baseY - amp * 2.4);
-        bgCtx.lineTo(0, baseY - amp * 2.4);
-        bgCtx.closePath();
-        bgCtx.fill();
+    bgAuroraMountains = [{ x: 0, y: bgH * 0.82 }];
+    let mx = 0;
+    while (mx < bgW + 40) {
+        mx += 30 + Math.random() * 50;
+        bgAuroraMountains.push({ x: mx, y: bgH * 0.78 + Math.random() * bgH * 0.14 });
     }
 }
 
-// nebula/svemir: lebdeći obojeni oblaci (radijalni gradijenti) + zvijezde koje trepere
+function bgDrawAurora(t) {
+    bgCtx.fillStyle = "#000309";
+    bgCtx.fillRect(0, 0, bgW, bgH);
+
+    // zvjezdano nebo iza aurore
+    for (const s of bgAuroraStars) {
+        const alpha = 0.25 + 0.65 * Math.abs(Math.sin(t * s.freq + s.phase));
+        bgCtx.fillStyle = "rgba(255,255,255," + alpha + ")";
+        bgCtx.beginPath();
+        bgCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        bgCtx.fill();
+    }
+
+    const hueShift = t * 4;   // sporo, kontinuirano pomicanje nijanse kroz vrijeme
+    const bandCount = 4;
+    for (let i = 0; i < bandCount; i++) {
+        const baseY = bgH * (0.16 + i * 0.09);
+        const amp = 46 + i * 20;
+        const freq = 0.0014 + i * 0.0004;
+        const phase = t * (0.15 + i * 0.05) + i * 2;
+        const hue = (130 + i * 55 + hueShift) % 360;
+
+        const grad = bgCtx.createLinearGradient(0, baseY - amp, 0, baseY + amp);
+        grad.addColorStop(0, "hsla(" + hue + ",85%,55%,0)");
+        grad.addColorStop(0.5, "hsla(" + hue + ",85%,55%,0.24)");
+        grad.addColorStop(1, "hsla(" + hue + ",85%,55%,0)");
+
+        bgCtx.fillStyle = grad;
+        bgCtx.beginPath();
+        bgCtx.moveTo(0, baseY - amp * 2.4);
+        for (let x = 0; x <= bgW; x += 16) {
+            // noise modulira valovitost - unutar vrpce djeluje kao neravnomjerna zavjesa svjetla
+            const streak = bgValueNoise(x * 0.02 + i * 10 + t * 0.6) * 0.6 + bgValueNoise(x * 0.07 + i * 30) * 0.4;
+            const y = baseY + amp * Math.sin(x * freq + phase) * Math.sin(x * 0.0007 + t * 0.12) * (0.6 + streak * 0.8);
+            bgCtx.lineTo(x, y);
+        }
+        bgCtx.lineTo(bgW, baseY + amp * 2.4);
+        bgCtx.lineTo(0, baseY + amp * 2.4);
+        bgCtx.closePath();
+        bgCtx.fill();
+
+        // tanke, svjetlije vertikalne zrake preko vrpce - "pruge" aurore
+        for (let x = 0; x <= bgW; x += 10) {
+            const streak = bgValueNoise(x * 0.05 + i * 17 + t * 0.8);
+            if (streak > 0.72) {
+                const y = baseY + amp * Math.sin(x * freq + phase) * Math.sin(x * 0.0007 + t * 0.12);
+                bgCtx.strokeStyle = "hsla(" + hue + ",90%,75%," + (streak - 0.72) + ")";
+                bgCtx.lineWidth = 1.4;
+                bgCtx.beginPath();
+                bgCtx.moveTo(x, y - amp * 1.6);
+                bgCtx.lineTo(x, y + amp * 1.6);
+                bgCtx.stroke();
+            }
+        }
+    }
+
+    // planinska silueta na dnu - dojam prostora/dubine
+    bgCtx.fillStyle = "#04060a";
+    bgCtx.beginPath();
+    bgCtx.moveTo(0, bgH);
+    for (const m of bgAuroraMountains) bgCtx.lineTo(m.x, m.y);
+    bgCtx.lineTo(bgW, bgH);
+    bgCtx.closePath();
+    bgCtx.fill();
+}
+
+// nebula/svemir: vlaknati (višedijelni) oblaci umjesto glatkih krugova, zvijezde od kojih
+// rijetke imaju pravi "flare" sjaj, i kometi koji povremeno prelete preko neba.
 let bgNebulaClouds = [];
 let bgNebulaStars = [];
+let bgComets = [];
+let bgNextCometTime = 0;
+
 function bgMakeNebula() {
     bgNebulaClouds = [];
     const cloudCount = 5;
     for (let i = 0; i < cloudCount; i++) {
+        const subCount = 4 + Math.floor(Math.random() * 3);
+        const sub = [];
+        for (let j = 0; j < subCount; j++) {
+            sub.push({
+                ox: (Math.random() - 0.5) * 1.3,
+                oy: (Math.random() - 0.5) * 1.3,
+                rScale: 0.35 + Math.random() * 0.55
+            });
+        }
         bgNebulaClouds.push({
             x: Math.random() * bgW,
             y: Math.random() * bgH,
-            r: 120 + Math.random() * 180,
+            r: 110 + Math.random() * 170,
             hue: Math.random() * 360,
-            vx: (Math.random() - 0.5) * 0.15,
-            vy: (Math.random() - 0.5) * 0.15
+            vx: (Math.random() - 0.5) * 0.12,
+            vy: (Math.random() - 0.5) * 0.12,
+            sub: sub
         });
     }
     const starCount = Math.max(60, Math.round((bgW * bgH) / 9000));
@@ -2577,9 +2651,53 @@ function bgMakeNebula() {
             y: Math.random() * bgH,
             r: Math.random() * 1.4 + 0.4,
             phase: Math.random() * Math.PI * 2,
-            freq: 0.5 + Math.random() * 1.5
+            freq: 0.5 + Math.random() * 1.5,
+            flare: Math.random() < 0.05   // rijetke, upadljivije zvijezde s krakovima sjaja
         });
     }
+    bgComets = [];
+    bgNextCometTime = 4 + Math.random() * 10;
+}
+
+// vlaknat oblak - nekoliko preklopljenih, nasumično pomaknutih "mrlja" umjesto jednog glatkog kruga
+function bgDrawNebulaCloud(c) {
+    for (const s of c.sub) {
+        const sx = c.x + s.ox * c.r * 0.55;
+        const sy = c.y + s.oy * c.r * 0.55;
+        const sr = c.r * s.rScale;
+        const grad = bgCtx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+        grad.addColorStop(0, "hsla(" + c.hue + ",80%,62%,0.13)");
+        grad.addColorStop(1, "hsla(" + c.hue + ",80%,62%,0)");
+        bgCtx.fillStyle = grad;
+        bgCtx.beginPath();
+        bgCtx.arc(sx, sy, sr, 0, Math.PI * 2);
+        bgCtx.fill();
+    }
+}
+
+// upadljiva zvijezda sa sjajem i krakovima (klasičan "lens flare" izgled)
+function bgDrawStarFlare(x, y, r, alpha) {
+    const glow = bgCtx.createRadialGradient(x, y, 0, x, y, r * 7);
+    glow.addColorStop(0, "rgba(255,255,255," + (alpha * 0.45) + ")");
+    glow.addColorStop(1, "rgba(255,255,255,0)");
+    bgCtx.fillStyle = glow;
+    bgCtx.beginPath();
+    bgCtx.arc(x, y, r * 7, 0, Math.PI * 2);
+    bgCtx.fill();
+
+    bgCtx.strokeStyle = "rgba(255,255,255," + (alpha * 0.8) + ")";
+    bgCtx.lineWidth = 1;
+    bgCtx.beginPath();
+    bgCtx.moveTo(x - r * 6, y);
+    bgCtx.lineTo(x + r * 6, y);
+    bgCtx.moveTo(x, y - r * 6);
+    bgCtx.lineTo(x, y + r * 6);
+    bgCtx.stroke();
+
+    bgCtx.fillStyle = "rgba(255,255,255," + alpha + ")";
+    bgCtx.beginPath();
+    bgCtx.arc(x, y, r, 0, Math.PI * 2);
+    bgCtx.fill();
 }
 
 function bgDrawNebula(t) {
@@ -2591,32 +2709,54 @@ function bgDrawNebula(t) {
         c.y += c.vy;
         if (c.x < -c.r) c.x = bgW + c.r; else if (c.x > bgW + c.r) c.x = -c.r;
         if (c.y < -c.r) c.y = bgH + c.r; else if (c.y > bgH + c.r) c.y = -c.r;
-
-        const grad = bgCtx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r);
-        grad.addColorStop(0, "hsla(" + c.hue + ",80%,60%,0.16)");
-        grad.addColorStop(1, "hsla(" + c.hue + ",80%,60%,0)");
-        bgCtx.fillStyle = grad;
-        bgCtx.beginPath();
-        bgCtx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
-        bgCtx.fill();
+        bgDrawNebulaCloud(c);
     }
 
     for (const s of bgNebulaStars) {
         const alpha = 0.3 + 0.7 * Math.abs(Math.sin(t * s.freq + s.phase));
-        bgCtx.fillStyle = "rgba(255,255,255," + alpha + ")";
+        if (s.flare) {
+            bgDrawStarFlare(s.x, s.y, s.r + 0.6, alpha);
+        } else {
+            bgCtx.fillStyle = "rgba(255,255,255," + alpha + ")";
+            bgCtx.beginPath();
+            bgCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            bgCtx.fill();
+        }
+    }
+
+    // kometi koji povremeno prelete preko neba, s trag koji nestaje
+    if (t > bgNextCometTime) {
+        bgComets.push({
+            x: Math.random() * bgW * 0.3,
+            y: Math.random() * bgH * 0.4,
+            vx: 4 + Math.random() * 3,
+            vy: 2 + Math.random() * 1.5,
+            life: 1
+        });
+        bgNextCometTime = t + 4 + Math.random() * 14;
+    }
+    for (let i = bgComets.length - 1; i >= 0; i--) {
+        const cm = bgComets[i];
+        cm.x += cm.vx;
+        cm.y += cm.vy;
+        cm.life -= 0.012;
+        if (cm.life <= 0 || cm.x > bgW + 50 || cm.y > bgH + 50) { bgComets.splice(i, 1); continue; }
+        const trail = bgCtx.createLinearGradient(cm.x - cm.vx * 14, cm.y - cm.vy * 14, cm.x, cm.y);
+        trail.addColorStop(0, "rgba(255,255,255,0)");
+        trail.addColorStop(1, "rgba(255,255,255," + cm.life + ")");
+        bgCtx.strokeStyle = trail;
+        bgCtx.lineWidth = 2;
         bgCtx.beginPath();
-        bgCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        bgCtx.fill();
+        bgCtx.moveTo(cm.x - cm.vx * 14, cm.y - cm.vy * 14);
+        bgCtx.lineTo(cm.x, cm.y);
+        bgCtx.stroke();
     }
 }
 
-// podvodni svijet: realniji mjehurići + ribe koje plivaju + svjetlosne zrake +
-// vrlo rijetka velika sjena morskog psa koja prođe u dubini.
+// podvodni svijet: realniji mjehurići + ribe koje plivaju + svjetlosne zrake.
 let bgBubbles = [];
 let bgPops = [];     // kratke čestice "pucanja" mjehura na vrhu
 let bgFish = [];
-let bgShark = null;
-let bgNextSharkTime = 0;
 
 function bgMakeUnderwater() {
     const count = Math.max(25, Math.round((bgW * bgH) / 25000));
@@ -2649,10 +2789,6 @@ function bgMakeUnderwater() {
             bobPhase: Math.random() * Math.PI * 2
         });
     }
-
-    // morski pas - jako rijetko prođe kao velika sjena u dubini
-    bgShark = null;
-    bgNextSharkTime = 30 + Math.random() * 60;
 }
 
 // mjehur s gradijentom i svjetlosnim odbljeskom - realnije od pukog kruga
@@ -2701,40 +2837,6 @@ function bgDrawFish(x, y, scale, dir, alpha, wiggle) {
     bgCtx.restore();
 }
 
-// velika, mekana sjena morskog psa koja prođe u dubini (rijedak "jump scare" detalj pozadine)
-function bgDrawShark(s, t) {
-    const wiggle = Math.sin(t * 1.4 + s.wigglePhase) * 0.07;
-    bgCtx.save();
-    bgCtx.translate(s.x, s.y);
-    bgCtx.scale(s.dir, 1);
-    bgCtx.rotate(wiggle);
-    bgCtx.fillStyle = "rgba(0,8,12,0.4)";
-    bgCtx.beginPath();
-    bgCtx.moveTo(-95, 0);
-    bgCtx.quadraticCurveTo(-45, -24, 45, -5);
-    bgCtx.quadraticCurveTo(75, 0, 95, 5);
-    bgCtx.quadraticCurveTo(45, 15, -45, 17);
-    bgCtx.quadraticCurveTo(-75, 10, -95, 0);
-    bgCtx.closePath();
-    bgCtx.fill();
-    // leđna peraja
-    bgCtx.beginPath();
-    bgCtx.moveTo(-5, -5);
-    bgCtx.lineTo(6, -30);
-    bgCtx.lineTo(20, -3);
-    bgCtx.closePath();
-    bgCtx.fill();
-    // rep
-    bgCtx.beginPath();
-    bgCtx.moveTo(-95, 0);
-    bgCtx.lineTo(-122, -22);
-    bgCtx.lineTo(-114, 2);
-    bgCtx.lineTo(-122, 20);
-    bgCtx.closePath();
-    bgCtx.fill();
-    bgCtx.restore();
-}
-
 function bgDrawUnderwater(t) {
     // vertikalni gradijent - svjetlije (sunce kroz vodu) pri vrhu, tamnije u dubini
     const waterGrad = bgCtx.createLinearGradient(0, 0, 0, bgH);
@@ -2743,26 +2845,6 @@ function bgDrawUnderwater(t) {
     waterGrad.addColorStop(1, "#000f17");
     bgCtx.fillStyle = waterGrad;
     bgCtx.fillRect(0, 0, bgW, bgH);
-
-    // morski pas - jako rijetko prođe kao sjena u dubini, ispod svega ostalog
-    if (!bgShark && t > bgNextSharkTime) {
-        const dir = Math.random() < 0.5 ? 1 : -1;
-        bgShark = {
-            x: dir > 0 ? -220 : bgW + 220,
-            y: bgH * (0.22 + Math.random() * 0.4),
-            dir: dir,
-            speed: 0.7 + Math.random() * 0.35,
-            wigglePhase: Math.random() * Math.PI * 2
-        };
-    }
-    if (bgShark) {
-        bgShark.x += bgShark.dir * bgShark.speed;
-        bgDrawShark(bgShark, t);
-        if ((bgShark.dir > 0 && bgShark.x > bgW + 220) || (bgShark.dir < 0 && bgShark.x < -220)) {
-            bgShark = null;
-            bgNextSharkTime = t + 90 + Math.random() * 150;   // vrlo rijetko - 1.5 do 4 minute do sljedećeg
-        }
-    }
 
     // svjetlosne zrake kroz vodu, blago trepere
     for (let i = 0; i < 5; i++) {
